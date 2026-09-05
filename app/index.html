@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f8f3"><title>Momo · 你的桌面小伙伴</title><link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"></head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Momo 首页"><span class="brand-mark">m<span>•</span></span><span>Momo<small>一只属于你的桌面小伙伴</small></span></a>
+      <nav aria-label="应用工具"><button id="connection" class="connection"><i></i><span>连接 EasyInput</span><span class="connect-icon">⌁</span></button><span class="nav-divider"></span><button id="diary-open" class="nav-button"><span>▤</span> 陪伴日记</button><button id="settings-open" class="icon-button" aria-label="设置">⚙</button></nav>
+    </header>
+    <main>
+      <section class="greeting"><div><div class="eyebrow" id="date-label">A LITTLE COMPANY, EVERY DAY</div><h1>小小陪伴，<span>刚刚好。</span></h1><p>不用做什么特别的事，和 Momo 待一会儿就很好。</p></div><div class="days"><span class="day-spark">✳</span><div>我们相伴的<big>第 <b id="day-count">1</b> 天</big></div></div></section>
+      <div class="playground">
+        <section class="pet-room" aria-label="Momo 的小房间">
+          <div class="room-top"><span class="room-label"><i></i> MOMO 的小天地</span><span class="mood-pill" id="mood-label">✦ 今天心情晴朗</span></div>
+          <div class="window-scene" aria-hidden="true"><div class="sun"></div><div class="cloud cloud-one"></div><div class="cloud cloud-two"></div><div class="window-line"></div></div>
+          <span class="floating sparkle s-one" aria-hidden="true">✧</span><span class="floating sparkle s-two" aria-hidden="true">✦</span><span class="floating s-three" aria-hidden="true">·</span>
+          <div class="plant" aria-hidden="true"><i></i><i></i><i></i><div></div></div>
+          <div class="pet-stage" id="pet-stage"><div class="pet-shadow"></div><div class="pet-wrap" id="pet-wrap"><div class="sleep-z">z <span>z</span><small>z</small></div><div class="outfit" id="outfit" aria-hidden="true"></div>
+            <svg class="pet" viewBox="0 0 340 330" role="img" aria-label="薄荷绿色的 Momo 宠物"><defs><linearGradient id="body" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#9aead0"/><stop offset=".48" stop-color="#71d8c4"/><stop offset="1" stop-color="#42b6aa"/></linearGradient><linearGradient id="ear" x2="1" y2="1"><stop stop-color="#91e4cc"/><stop offset="1" stop-color="#6bd0ba"/></linearGradient><radialGradient id="blush"><stop stop-color="#eeafae" stop-opacity=".6"/><stop offset="1" stop-color="#eeafae" stop-opacity="0"/></radialGradient></defs>
+            <ellipse cx="118" cy="296" rx="35" ry="16" fill="#49b7a7"/><ellipse cx="226" cy="296" rx="35" ry="16" fill="#49b7a7"/>
+            <path d="M74 110 C50 73 40 32 59 28 C96 18 123 49 128 88 Z" fill="url(#ear)"/><path d="M215 86 C225 48 265 17 287 30 C305 42 279 94 266 113Z" fill="url(#ear)"/>
+            <path d="M169 64 C246 60 292 112 295 179 L295 212 C293 278 245 307 170 305 C96 307 46 281 44 217 L45 174 C47 107 95 65 169 64Z" fill="url(#body)"/>
+            <path d="M73 169 C62 193 58 229 76 250" fill="none" stroke="#aeefd8" stroke-width="9" stroke-linecap="round" opacity=".3"/>
+            <ellipse cx="91" cy="220" rx="28" ry="17" fill="url(#blush)"/><ellipse cx="248" cy="220" rx="28" ry="17" fill="url(#blush)"/>
+            <g class="eyes"><ellipse cx="124" cy="184" rx="17" ry="22" fill="#244842"/><ellipse cx="215" cy="184" rx="17" ry="22" fill="#244842"/><circle cx="129" cy="178" r="5" fill="#effff8"/><circle cx="220" cy="178" r="5" fill="#effff8"/></g>
+            <g class="closed-eyes" fill="none" stroke="#244842" stroke-width="5" stroke-linecap="round"><path d="M109 192q15 11 29 0"/><path d="M201 192q15 11 29 0"/></g>
+            <path class="mouth" d="M156 216 Q170 231 185 216" fill="none" stroke="#244842" stroke-width="4" stroke-linecap="round"/>
+            <ellipse cx="166" cy="265" rx="48" ry="23" fill="#b8efdc" opacity=".3"/>
+            <path d="M47 215Q26 206 29 228Q33 248 57 247" fill="#6ad0ba"/><path class="pet-hand" d="M291 215Q314 200 314 222Q313 243 289 246" fill="#50bcac"/>
+            </svg><div id="effect-burst" class="effect-burst" aria-hidden="true"></div>
+          </div></div>
+          <div class="speech" id="speech" role="status">今天戴哪顶帽子？转转旋钮，帮我选一个吧。</div>
+          <div class="pet-caption"><span>Momo</span><i>你的专属小可爱</i><span class="tiny-heart">♡</span></div>
+        </section>
+        <aside class="control-panel" aria-label="旋钮控制台">
+          <div class="panel-label"><span>此刻，一起做点什么</span><span id="mode-counter">06 / 08</span></div>
+          <div class="mode-heading"><span id="mode-icon">🎩</span><div><small id="mode-name">装扮时间</small><h2 id="mode-title">今天戴哪顶帽子？</h2></div></div>
+          <p class="mode-hint" id="mode-hint">转动旋钮预览，按下就穿上。</p>
+          <div class="knob-area"><button class="step-button" id="previous" aria-label="上一个选项">−</button><button class="knob" id="knob" aria-label="确认旋钮选择"><div class="knob-ticks"></div><div class="knob-face"><i id="knob-indicator"></i><span id="option-symbol">✨</span><small>按下确认</small></div></button><button class="step-button" id="next" aria-label="下一个选项">＋</button></div>
+          <div class="selection"><span class="selection-line"></span><strong id="option-name">原来的我</strong><span class="selection-line"></span></div><div id="option-dots" class="option-dots"></div>
+          <div class="training hidden" id="training"><p>光点进入绿色区时，按下旋钮！</p><div class="training-track"><span id="training-target"></span><i id="training-dot"></i></div></div>
+          <button class="primary-button" id="confirm">就穿这一套 <span>↵</span></button>
+          <p class="control-footnote">← → 选择 · Enter 确认 · Esc 返回</p>
+        </aside>
+      </div>
+      <section class="vitals" aria-label="宠物状态"><div class="vital"><span>🍑 饱腹感</span><div class="meter"><i id="hunger-bar"></i></div><b id="hunger-value">65</b></div><div class="vital"><span>☀️ 好心情</span><div class="meter"><i id="mood-bar"></i></div><b id="mood-value">70</b></div><div class="vital"><span>⚡ 小体力</span><div class="meter"><i id="energy-bar"></i></div><b id="energy-value">80</b></div><div class="vital"><span>♡ 亲密度</span><div class="meter"><i id="bond-bar"></i></div><b id="bond-value">12</b></div></section>
+      <section class="keyboard-section"><div class="keyboard-label"><span>EASYINPUT · 八颗按键，无限小日常</span><span>按键选活动，旋钮添心意 <span class="mini-knob">◉</span></span></div><div class="keys" id="keys" aria-label="八键活动"></div></section>
+      <footer><span><i></i><span id="save-label">小日常，只保存在这台电脑</span></span><span>MADE FOR YOUR EVERYDAY <span class="footer-flower">✳</span></span></footer>
+    </main>
+  </div>
+  <dialog id="diary-dialog"><div class="dialog-head"><div><span class="eyebrow">OUR LITTLE DAYS</span><h2>和你的陪伴日记</h2></div><button class="close-dialog icon-button" aria-label="关闭日记">×</button></div><p class="dialog-intro">把普通日子里的小幸福，悄悄收好。最多保留最近 200 条。</p><div id="diary-list"></div><button class="secondary-button" id="export-diary">导出日记 ↓</button></dialog>
+  <dialog id="chat-dialog"><div class="dialog-head"><div><span class="eyebrow">I'M ALL EARS</span><h2>Momo 在听</h2></div><button class="close-dialog icon-button" aria-label="关闭聊天">×</button></div><span class="chat-badge" id="chat-badge">本地陪伴 · 预设回复</span><div class="messages" id="messages" aria-live="polite"></div><form id="chat-form"><input id="chat-input" placeholder="今天发生了什么呢？" aria-label="和 Momo 说句话" maxlength="2000" autocomplete="off" required><button class="primary-button" id="send-chat" type="submit">发送 ↑</button></form><p class="privacy-note">对话只保留在本次打开期间。配置 AI 后，最近 12 条消息及宠物状态会发往你选择的服务。</p></dialog>
+  <dialog id="settings-dialog"><div class="dialog-head"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2>把这里变成你的角落</h2></div><button class="close-dialog icon-button" aria-label="关闭设置">×</button></div><div class="setting-row"><div><b>窗口置顶</b><p>做事的时候，也能一眼看见 Momo。</p></div><input type="checkbox" id="always-top" aria-label="窗口置顶"></div><div class="setting-row"><div><b>音乐音量</b><p>声音从电脑播放。</p></div><input type="range" id="volume" min="0" max="100" value="25" aria-label="音乐音量"></div><div class="setting-row"><div><b>旋钮方向反转</b><p>实体旋钮方向与习惯相反时开启。</p></div><input type="checkbox" id="reverse-knob" aria-label="旋钮方向反转"></div><hr><h3>接入你自己的 AI</h3><p class="dialog-intro">不填写也能体验预设陪伴对话。支持兼容 Chat Completions 的 HTTPS 服务，密钥仅在本次打开期间使用。</p><form id="ai-form"><label>完整接口地址<input id="ai-endpoint" type="url" placeholder="https://api.deepseek.com/chat/completions" autocomplete="off"></label><label>模型名称<input id="ai-model" placeholder="填写服务商提供的模型名称" maxlength="100" autocomplete="off"></label><label>API 密钥<input id="ai-key" type="password" placeholder="仅保留在内存中" autocomplete="off"></label><div class="form-actions"><button class="primary-button" type="submit">使用 AI 对话</button><button class="secondary-button" id="ai-clear" type="button">恢复本地陪伴</button></div><p id="ai-status" role="status"></p></form><hr><button class="danger-button" id="clear-data">清除宠物与日记数据</button><p class="privacy-note">仅清除此设备上的 Momo 记录，无法恢复。</p></dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="./app.mjs"></script>
+</body></html>

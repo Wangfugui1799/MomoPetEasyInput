@@ -1,0 +1,24 @@
+{
+  "name": "momo-easyinput",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Momo · EasyInput 八键旋钮桌面宠物",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:firmware": "cc -std=c11 -Wall -Wextra -Werror firmware/main/input_logic.c firmware/tests/input_test.c -o /tmp/momo-input-test && /tmp/momo-input-test",
+    "test:ui": "playwright test",
+    "package:mac": "electron-packager . Momo --platform=darwin --arch=arm64 --out=dist --overwrite --ignore='^/(firmware|tests|test-results|docs|dist|scripts|playwright.config.mjs)'"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@electron/packager": "19.0.1",
+    "@playwright/test": "1.58.2",
+    "electron": "40.0.0"
+  }
+}

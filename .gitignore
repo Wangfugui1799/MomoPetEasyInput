@@ -1,0 +1,19 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+.DS_Store
+.env*
+!.env.example
+
+# Local caches and generated reports
+.cache/
+coverage/
+*.log
+*.local
+
+# ESP-IDF downloaded dependencies (keep dependencies.lock)
+firmware/managed_components/
