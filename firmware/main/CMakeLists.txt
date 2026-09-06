@@ -1,1 +1,1 @@
-idf_component_register(SRCS "main.c" "input_logic.c" INCLUDE_DIRS "." REQUIRES esp_driver_gpio esp_driver_uart esp_driver_usb_serial_jtag esp_timer)
+idf_component_register(SRCS "main.c" "input_logic.c" "input_sound_logic.c" "input_sound.c" "sound_commands.c" INCLUDE_DIRS "." REQUIRES esp_driver_gpio esp_driver_uart esp_driver_usb_serial_jtag esp_driver_i2s esp_timer nvs_flash json)

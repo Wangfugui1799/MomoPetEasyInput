@@ -1,3 +1,26 @@
+# Momo 0.2.0 操作音效烧录与启动验证
+
+2026-09-06，用户授权“烧录”并在验证中断后要求“继续”。
+
+## 已验证
+
+- 释放旧 Momo 的串口连接后，确认目标为 ESP32-S3、MAC 尾号 D6:80，与写入前后身份一致。
+- 读取现有分区表并与本地构建逐字节比较，一致。因此只写应用，不改启动程序、分区表或 NVS，不整片擦除。
+- 应用 256864 字节写入地址 0x10000，擦写扇区范围 0x10000–0x4EFFF；工具报告 `Hash of data verified`。
+- 自动进入下载与恢复流程。先前验证会话在额度中断期间过期，续做时按正式流程重新 prepare，随后 verify 成功。
+- `POST_FLASH_READY=yes`、`EXPECT_MATCH=yes`、`APPLICATION_EVIDENCE=matched`、`ROM_DOWNLOAD_MODE=no`。启动完成后未再运行 esptool 或读 MAC。
+- 应用协议实际返回 `firmware:0.2.0`、`sound:true`、`dropped:0`。
+- 通过 `sound_get` 实际读取：`enabled:true`、`volume:30`、`ready:true`，`error/audio_error/storage_error` 均为 `none`。
+- 已重新打开新版 Mac Momo 并恢复 cu.usbmodem1101 连接，界面实际显示 EasyInput · 0.2.0；设置显示音效开启、30% 和“已读取键盘设置”。已返回主界面。
+
+固件 SHA-256：`351888c526202ce4ae14667c43442ddca0a5d5380343dfb9a2e193e9558b178b`。
+
+## 用户反馈与后续验收
+
+用户随后反馈“不错”，已初步认可本轮使用效果；尚未记录逐键、旋钮旋转及按压的完整试听矩阵、延迟测量、断电保存和外设共存验收。共享电源 50 毫秒等待已随固件运行，但仍没有电源波形资格测量证据。
+
+---
+
 # Momo 0.1.0 烧录与启动验证
 
 2026-09-05，用户明确授权开始烧录，并先后完成 BOOT 与关机再开机操作。

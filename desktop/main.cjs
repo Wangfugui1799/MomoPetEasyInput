@@ -13,7 +13,7 @@ async function createWindow(){
   ses.on('select-serial-port',async(event,ports,contents,callback)=>{
     event.preventDefault();if(contents?.id!==win.webContents.id||!sameOrigin(contents.getURL(),origin)){callback('');return}
     if(!ports.length){callback('');await dialog.showMessageBox(win,{type:'info',message:'没有找到串口设备',detail:'请用数据线连接 EasyInput。Momo 需要本项目配套固件。'});return}
-    const {response}=await dialog.showMessageBox(win,{title:'连接 EasyInput',message:'选择运行 Momo 固件的键盘',detail:'连接只读取按键事件。应用会先验证 Momo 固件握手。',buttons:[...ports.map(p=>`${p.displayName||p.portName} (${p.portName})`),'取消'],cancelId:ports.length,defaultId:ports.length,noLink:true});callback(ports[response]?.portId||'');
+    const {response}=await dialog.showMessageBox(win,{title:'连接 EasyInput',message:'选择运行 Momo 固件的键盘',detail:'应用会先确认 Momo 固件并读取按键事件与音效设置。你可以在设置中调节键盘音量。',buttons:[...ports.map(p=>`${p.displayName||p.portName} (${p.portName})`),'取消'],cancelId:ports.length,defaultId:ports.length,noLink:true});callback(ports[response]?.portId||'');
   });
   win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',(e,url)=>{if(!url.startsWith(origin+'/'))e.preventDefault()});
   await win.loadURL(origin);

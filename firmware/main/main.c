@@ -9,6 +9,8 @@
 #include "driver/usb_serial_jtag.h"
 #include "esp_timer.h"
 #include "input_logic.h"
+#include "input_sound.h"
+#include "sound_commands.h"
 
 // EasyInput V2.0 / PCB AI Keyboard V2.1. These are physical board pins.
 static const gpio_num_t KEY_PINS[9]={2,47,38,41,1,6,7,48,18};
@@ -27,7 +29,7 @@ static void sample_inputs(void *unused){
   (void)unused;momo_button buttons[9];momo_encoder encoder;
   for(int i=0;i<9;i++)momo_button_init(&buttons[i],gpio_get_level(KEY_PINS[i])==0,millis());
   momo_encoder_init(&encoder,encoder_ab());TickType_t wake=xTaskGetTickCount();
-  for(;;){uint32_t now=millis();for(int i=0;i<9;i++){int result=momo_button_update(&buttons[i],gpio_get_level(KEY_PINS[i])==0,now);if(i<8&&(result&INPUT_DOWN))enqueue(1,i+1);if(i==8&&(result&INPUT_SHORT))enqueue(3,0);if(i==8&&(result&INPUT_LONG))enqueue(4,0);}int delta=momo_encoder_update(&encoder,encoder_ab());if(delta)enqueue(2,delta);vTaskDelayUntil(&wake,pdMS_TO_TICKS(1));}
+  for(;;){uint32_t now=millis();for(int i=0;i<9;i++){int result=momo_button_update(&buttons[i],gpio_get_level(KEY_PINS[i])==0,now);if(result&INPUT_DOWN)input_sound_trigger(i<8?SOUND_KEY:SOUND_PRESS,now);if(i<8&&(result&INPUT_DOWN))enqueue(1,i+1);if(i==8&&(result&INPUT_SHORT))enqueue(3,0);if(i==8&&(result&INPUT_LONG))enqueue(4,0);}int delta=momo_encoder_update(&encoder,encoder_ab());if(delta){input_sound_trigger(SOUND_ROTATE,now);enqueue(2,delta);}vTaskDelayUntil(&wake,pdMS_TO_TICKS(1));}
 }
 static void write_line(const char *line){
   size_t len=strlen(line);
@@ -36,7 +38,7 @@ static void write_line(const char *line){
   uart_write_bytes(UART_NUM_0,line,len);
 }
 void app_main(void){
-  // No LED/audio consumer in V0.1. Latch safe states before enabling output directions; rail stays OFF.
+  // Latch every shared consumer safe before input_sound_init enables the rail.
   ESP_ERROR_CHECK(gpio_set_level(SHARED_POWER,0));ESP_ERROR_CHECK(gpio_set_direction(SHARED_POWER,GPIO_MODE_OUTPUT));
   const gpio_num_t safe_outputs[]={9,10,12,13,14,15};
   for(unsigned i=0;i<sizeof(safe_outputs)/sizeof(safe_outputs[0]);i++){ESP_ERROR_CHECK(gpio_set_level(safe_outputs[i],0));ESP_ERROR_CHECK(gpio_set_direction(safe_outputs[i],GPIO_MODE_OUTPUT));}
@@ -46,11 +48,16 @@ void app_main(void){
   usb_serial_jtag_driver_config_t usb={.tx_buffer_size=2048,.rx_buffer_size=256};ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&usb));
   uart_config_t uart={.baud_rate=115200,.data_bits=UART_DATA_8_BITS,.parity=UART_PARITY_DISABLE,.stop_bits=UART_STOP_BITS_1,.flow_ctrl=UART_HW_FLOWCTRL_DISABLE,.source_clk=UART_SCLK_DEFAULT};
   ESP_ERROR_CHECK(uart_param_config(UART_NUM_0,&uart));ESP_ERROR_CHECK(uart_set_pin(UART_NUM_0,43,44,UART_PIN_NO_CHANGE,UART_PIN_NO_CHANGE));ESP_ERROR_CHECK(uart_driver_install(UART_NUM_0,256,2048,0,NULL,0));
+  input_sound_init();
   events=xQueueCreate(32,sizeof(input_event));configASSERT(events);
   BaseType_t created=xTaskCreate(sample_inputs,"momo_inputs",3072,NULL,5,NULL);configASSERT(created==pdPASS);
-  uint32_t last_hello=millis()-2000;char line[256];
+  uint32_t last_hello=millis()-2000;char line[512];command_buffer usb_commands={0},uart_commands={0};
   for(;;){
-    uint32_t now=millis();if((uint32_t)(now-last_hello)>=2000){last_hello=now;portENTER_CRITICAL(&dropped_lock);uint32_t dropped=dropped_events;portEXIT_CRITICAL(&dropped_lock);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.1.0\",\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);write_line(line);}
+    uint32_t now=millis();if((uint32_t)(now-last_hello)>=2000){last_hello=now;portENTER_CRITICAL(&dropped_lock);uint32_t dropped=dropped_events;portEXIT_CRITICAL(&dropped_lock);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.2.0\",\"sound\":true,\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);write_line(line);}
+    char rx[64];int count=usb_serial_jtag_read_bytes(rx,sizeof(rx),0);
+    for(int i=0;i<count;i++)if(sound_command_byte(&usb_commands,rx[i],line,sizeof(line)))usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));
+    count=uart_read_bytes(UART_NUM_0,rx,sizeof(rx),0);
+    for(int i=0;i<count;i++)if(sound_command_byte(&uart_commands,rx[i],line,sizeof(line)))uart_write_bytes(UART_NUM_0,line,strlen(line));
     input_event e;if(xQueueReceive(events,&e,pdMS_TO_TICKS(5))==pdTRUE){
       if(e.type==1)snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"key\",\"key\":%d}\n",PROTOCOL,e.value);
       else if(e.type==2)snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"rotate\",\"delta\":%d}\n",PROTOCOL,e.value);
