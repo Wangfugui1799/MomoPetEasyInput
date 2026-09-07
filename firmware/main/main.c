@@ -9,6 +9,8 @@
 #include "driver/usb_serial_jtag.h"
 #include "esp_timer.h"
 #include "input_logic.h"
+#include "momo_ble.h"
+#include "battery.h"
 #include "input_sound.h"
 #include "sound_commands.h"
 
@@ -49,11 +51,14 @@ void app_main(void){
   uart_config_t uart={.baud_rate=115200,.data_bits=UART_DATA_8_BITS,.parity=UART_PARITY_DISABLE,.stop_bits=UART_STOP_BITS_1,.flow_ctrl=UART_HW_FLOWCTRL_DISABLE,.source_clk=UART_SCLK_DEFAULT};
   ESP_ERROR_CHECK(uart_param_config(UART_NUM_0,&uart));ESP_ERROR_CHECK(uart_set_pin(UART_NUM_0,43,44,UART_PIN_NO_CHANGE,UART_PIN_NO_CHANGE));ESP_ERROR_CHECK(uart_driver_install(UART_NUM_0,256,2048,0,NULL,0));
   input_sound_init();
+  momo_ble_init();
   events=xQueueCreate(32,sizeof(input_event));configASSERT(events);
   BaseType_t created=xTaskCreate(sample_inputs,"momo_inputs",3072,NULL,5,NULL);configASSERT(created==pdPASS);
+  uint32_t last_battery=millis()-10000;
   uint32_t last_hello=millis()-2000;char line[512];command_buffer usb_commands={0},uart_commands={0};
   for(;;){
-    uint32_t now=millis();if((uint32_t)(now-last_hello)>=2000){last_hello=now;portENTER_CRITICAL(&dropped_lock);uint32_t dropped=dropped_events;portEXIT_CRITICAL(&dropped_lock);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.2.0\",\"sound\":true,\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);write_line(line);}
+    uint32_t now=millis();if((uint32_t)(now-last_hello)>=2000){last_hello=now;momo_ble_send(0,0);portENTER_CRITICAL(&dropped_lock);uint32_t dropped=dropped_events;portEXIT_CRITICAL(&dropped_lock);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.4.0\",\"sound\":true,\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);write_line(line);}
+    if((uint32_t)(millis()-last_battery)>=10000){last_battery=millis();int percent=battery_percent();momo_ble_send(5,percent<0?255:percent);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"battery\",\"percent\":%d}\n",PROTOCOL,percent);write_line(line);}
     char rx[64];int count=usb_serial_jtag_read_bytes(rx,sizeof(rx),0);
     for(int i=0;i<count;i++)if(sound_command_byte(&usb_commands,rx[i],line,sizeof(line)))usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));
     count=uart_read_bytes(UART_NUM_0,rx,sizeof(rx),0);
@@ -63,6 +68,7 @@ void app_main(void){
       else if(e.type==2)snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"rotate\",\"delta\":%d}\n",PROTOCOL,e.value);
       else {snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"%s\"}\n",PROTOCOL,e.type==3?"press":"long_press");}
       write_line(line);
+      momo_ble_send(e.type,e.value);
     }
   }
 }

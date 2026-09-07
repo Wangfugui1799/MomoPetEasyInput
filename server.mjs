@@ -1,6 +1,6 @@
 import http from 'node:http';import {readFile} from 'node:fs/promises';import {fileURLToPath} from 'node:url';import path from 'node:path';
 const root=fileURLToPath(new URL('./app/',import.meta.url));
-const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','protocol.mjs','sound.mjs','keyboard-sound.mjs']);
+const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','bluetooth.mjs','protocol.mjs','sound.mjs','keyboard-sound.mjs']);
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
 export function validateChat(data){
   if(!data||typeof data.endpoint!=='string'||typeof data.key!=='string'||!data.key||data.key.length>2048||typeof data.model!=='string'||!data.model.trim()||data.model.length>100)throw Error('请检查 AI 接口、模型名称和密钥');

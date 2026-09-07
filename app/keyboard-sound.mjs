@@ -22,7 +22,7 @@ export class KeyboardSoundPanel {
     if(status!=='connected'){
       this.state=null;this.epoch=-1;this.busy=false;this.message.textContent='连接键盘后可设置；声音从键盘播放';this.render();return;
     }
-    if(!keyboard.soundSupported){this.state=null;this.message.textContent='当前固件不支持操作音效，请更新固件';this.render();return}
+    if(!keyboard.soundSupported){this.state=null;this.message.textContent=keyboard.device?'蓝牙控制已连接；请通过 USB 调整键盘音效':'当前固件不支持操作音效，请更新固件';this.render();return}
     if(this.epoch!==keyboard.epoch){this.epoch=keyboard.epoch;void this.run('sound_get')}
   }
   async run(type,settings){

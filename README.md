@@ -6,7 +6,7 @@
 
 一款面向 Mac 的桌面陪伴原型，使用 EasyInput 键盘与薄荷绿色的 Momo 互动。支持喂食、摸摸、训练、探索、聊天、装扮、音乐和睡觉；没有硬件时，也可以用鼠标和电脑键盘体验。
 
-**V0.2.0 · Electron · ESP32-S3 · USB Serial**
+**V0.4.0 · Electron · ESP32-S3 · USB Serial / BLE**
 
 [快速开始](#快速开始) · [八键与旋钮](#八键与旋钮) · [连接开发板](#连接开发板) · [AI-对话](#ai-对话) · [验证状态](#验证状态)
 
@@ -112,16 +112,16 @@ Momo 使用自己的串口事件协议，**不能直接使用普通 USB HID 键�
 ```sh
 source /path/to/esp-idf/export.sh
 idf.py --version
-idf.py -C firmware build
+idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/build-ble/sdkconfig" build
 ```
 
 目标芯片和 Flash 容量已在 `firmware/sdkconfig.defaults` 中设置。构建产物包括：
 
 | 产物 | 作用 |
 | --- | --- |
-| `firmware/build/bootloader/bootloader.bin` | 启动程序 |
-| `firmware/build/partition_table/partition-table.bin` | 分区表 |
-| `firmware/build/momo_easyinput.bin` | Momo 应用 |
+| `firmware/build-ble/bootloader/bootloader.bin` | 启动程序 |
+| `firmware/build-ble/partition_table/partition-table.bin` | 分区表 |
+| `firmware/build-ble/momo_easyinput.bin` | Momo 应用 |
 
 ### 2. 写入并恢复正常启动
 
@@ -133,13 +133,13 @@ idf.py -C firmware build
 
    ```sh
    MOMO_PORT=/dev/cu.usbmodemXXXX
-   idf.py -C firmware -p "$MOMO_PORT" flash
+   idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/build-ble/sdkconfig" -p "$MOMO_PORT" flash
    ```
 
 4. 写入完成后，使用板上电源开关**关机，再开机**，恢复正常运行；不要再次按 BOOT。
 5. 继续确认应用握手。写入哈希校验成功，仅代表数据写入正确，不等于应用已经启动。
 
-本固件写入启动程序、分区表和应用，不要求整片擦除。具体偏移以本次构建生成的 `firmware/build/flash_args` 为准。
+本固件写入启动程序、分区表和应用，不要求整片擦除。具体偏移以本次构建生成的 `firmware/build-ble/flash_args` 为准。
 
 ### 3. 在 Momo 中连接
 
@@ -154,6 +154,14 @@ idf.py -C firmware build
 ```
 
 应用在首次连接的 5 秒内等待握手，收到前忽略控制事件；连接后若持续收不到心跳，会提示重新连接。串口握手用于确认协议兼容性，不代替烧录前的设备身份核对。
+
+### 蓝牙控制与电量（0.4.0）
+
+安装新版 Momo 应用并写入 0.4.0 固件后，保持键盘开机，在 Momo 中点击 **蓝牙连接**，选择 **Momo EasyInput**。首次使用需允许 macOS 的蓝牙权限。此设备使用 Momo 专用 BLE 服务，从应用内连接，无需先在系统设置里配对为普通键盘。
+
+支持 S1–S8、旋钮双向旋转、短按和长按。断开后设备重新广播，可再次连接；同一时间只连接一台蓝牙主机。应用一次选择 USB 或蓝牙，切换前点击连接状态断开。键盘本机音效保留，音量与开关设置仍需 USB。
+
+连接后，应用会在顶部显示键盘电量。开发板没有专用电量计，百分比由电池电压估算；本版已完成固件写入、正常启动、真实蓝牙连接和 96% 电量上报验证。详细记录见 [蓝牙验证记录](docs/BLUETOOTH-VALIDATION.md) 和 [电量验证记录](docs/BATTERY-STATUS.md)。
 
 ### 硬件映射
 
@@ -274,7 +282,7 @@ idf.py -C firmware build
 
 ## 当前范围与后续方向
 
-当前以八键互动、基础养成和可运行的桌面窗口为核心。尚未实现：透明桌面挂件、开机自启、全局快捷键、语音聊天、板载灯光与语音播放、蓝牙控制、云同步、自动更新、签名和公证发布。
+当前以八键互动、基础养成和可运行的桌面窗口为核心。尚未实现：透明桌面挂件、开机自启、全局快捷键、语音聊天、板载灯光与语音播放、云同步、自动更新、签名和公证发布。
 
 后续可优先完善实体功能矩阵、旋钮手感、断连恢复和 AI 服务实测，再扩展桌面挂件与语音能力。
 

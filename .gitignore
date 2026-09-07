@@ -17,3 +17,7 @@ coverage/
 
 # ESP-IDF downloaded dependencies (keep dependencies.lock)
 firmware/managed_components/
+
+# Isolated Bluetooth verification build
+build-ble/
+firmware/build-ble/

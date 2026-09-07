@@ -1,5 +1,6 @@
 import {KeyboardSoundPanel} from './keyboard-sound.mjs';
 import {MODES,initialState,restoreState,ageState,act,localReply,addDiary} from './core.mjs';
+import {BluetoothConnection} from './bluetooth.mjs';
 import {KeyboardConnection} from './serial.mjs';import {Soundscape} from './sound.mjs';
 const $=s=>document.querySelector(s),storageKey='momo.pet.v1';
 let state=initialState(),mode=5,choice=0,reverse=false,ai=null,history=[],chatBusy=false,game=null,toastTimer,animationTimer;
@@ -44,9 +45,15 @@ for(const [i,m]of MODES.entries()){const b=document.createElement('button');b.cl
 $('#previous').onclick=()=>rotate(-1);$('#next').onclick=()=>rotate(1);$('#confirm').onclick=confirm;$('#knob').onclick=confirm;
 $('#knob').addEventListener('wheel',e=>{e.preventDefault();if(Math.abs(e.deltaY)>2)rotate(e.deltaY>0?1:-1)},{passive:false});
 document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||e.target.matches('input,textarea,select')||e.metaKey||e.ctrlKey||e.altKey)return;if(e.repeat)return;if(e.key==='Enter'&&e.target.closest('button,a'))return;if(/^[1-8]$/.test(e.key)){e.preventDefault();select(Number(e.key)-1)}else if(e.key==='ArrowLeft'){e.preventDefault();rotate(-1)}else if(e.key==='ArrowRight'){e.preventDefault();rotate(1)}else if(e.key==='Enter'){e.preventDefault();confirm()}else if(e.key==='Escape'){cancelGame();choice=MODES[mode].id==='dress'?state.outfit:0;render();speak('不着急，我们慢慢选。')}});
-const keyboard=new KeyboardConnection(e=>{const dialog=document.querySelector('dialog[open]');if(e.type==='long_press'){if(dialog)dialog.close();else{cancelGame();choice=MODES[mode].id==='dress'?state.outfit:0;render();speak('回来啦，我们换一件事做吧。')}return}if(dialog)return;if(e.type==='key')select(e.key-1);if(e.type==='rotate')rotate(e.delta*(reverse?-1:1));if(e.type==='press')confirm()},(status,text)=>{$('#connection').classList.toggle('connected',status==='connected');$('#connection span').textContent=status==='connected'?'EasyInput 已连接':status==='waiting'?'正在连接…':'连接 EasyInput';$('#connection').title=text;if(status!=='connected')toast(text);soundPanel.connectionChanged(status)});
+let batteryTimer;
+const handleKeyboardEvent=e=>{if(e.type==='battery'){const el=$('#battery-level');el.hidden=false;el.textContent=e.percent<0?'电量未知':`电量 ${e.percent}%`;el.title='键盘电量';clearTimeout(batteryTimer);batteryTimer=setTimeout(()=>{el.textContent='电量待更新'},25000);return}const dialog=document.querySelector('dialog[open]');if(e.type==='long_press'){if(dialog)dialog.close();else{cancelGame();choice=MODES[mode].id==='dress'?state.outfit:0;render();speak('回来啦，我们换一件事做吧。')}return}if(dialog)return;if(e.type==='key')select(e.key-1);if(e.type==='rotate')rotate(e.delta*(reverse?-1:1));if(e.type==='press')confirm()};
+const handleKeyboardStatus=(status,text)=>{if(status!=='connected'){clearTimeout(batteryTimer);$('#battery-level').hidden=true}$('#connection').classList.toggle('connected',status==='connected');$('#connection span').textContent=status==='connected'?'EasyInput 已连接':status==='waiting'?'正在连接…':'连接 EasyInput';$('#connection').title=text;if(status!=='connected')toast(text);soundPanel.connectionChanged(status)};
+const usbKeyboard=new KeyboardConnection(handleKeyboardEvent,handleKeyboardStatus);
+const bluetoothKeyboard=new BluetoothConnection(handleKeyboardEvent,handleKeyboardStatus);
+let keyboard=usbKeyboard;
 const soundPanel=new KeyboardSoundPanel(()=>keyboard);
-$('#connection').onclick=()=>keyboard.port?keyboard.disconnect():keyboard.connect();
+$('#connection').onclick=()=>{if(keyboard.busy)return;if(keyboard.port)return keyboard.disconnect();keyboard=usbKeyboard;return keyboard.connect()};
+$('#bluetooth-connect').onclick=()=>{if(keyboard.busy)return;if(keyboard.port){toast('请先点击连接状态断开当前键盘');return}keyboard=bluetoothKeyboard;return keyboard.connect()};
 $('#diary-open').onclick=()=>{renderDiary();openDialog('#diary-dialog')};$('#settings-open').onclick=()=>openDialog('#settings-dialog');
 document.querySelectorAll('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}}));
 $('#chat-form').onsubmit=async e=>{

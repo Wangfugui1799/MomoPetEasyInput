@@ -7,3 +7,5 @@
 .s-three{position:absolute}
 @media(min-width:741px) and (max-height:980px){main{padding-top:26px}.greeting{margin-bottom:24px}.greeting h1{font-size:30px}.greeting p{margin-top:10px}.pet-room,.control-panel{height:394px}.pet-stage{top:48px;bottom:90px}.pet-wrap{width:243px;height:243px}.control-panel{padding-top:20px;padding-bottom:16px}.mode-heading{margin-top:16px}.mode-hint{margin-top:8px;height:30px}.knob-area{margin-top:0}.knob{width:135px;height:135px}.knob-ticks{inset:-3px}.control-footnote{margin-top:9px}.vitals{margin-top:16px}.keyboard-section{margin-top:23px}.key{height:104px;padding-top:12px}.key-icon{margin-bottom:5px}footer{padding-top:21px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+#battery-level{font-size:12px;color:#52755a;white-space:nowrap}
