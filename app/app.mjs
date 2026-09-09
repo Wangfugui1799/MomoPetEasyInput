@@ -1,3 +1,4 @@
+import {VoiceInputSettings} from './voice-input.mjs';
 import {VoiceChat} from './voice.mjs';
 import {createBrowserAudio} from './voice-audio.mjs';
 import {KeyboardSoundPanel} from './keyboard-sound.mjs';
@@ -18,7 +19,7 @@ function rotate(delta){if(game)return;choice=(choice+delta+MODES[mode].options.l
 function render(){
   const m=MODES[mode];$('#mode-counter').textContent=`${String(mode+1).padStart(2,'0')} / 08`;$('#mode-icon').textContent=m.icon;$('#mode-name').textContent=`${m.name}时间`;$('#mode-title').textContent=m.title;$('#mode-hint').textContent=m.hint;
   $('#option-symbol').textContent=m.symbols[choice];$('#option-name').textContent=m.options[choice];$('#knob-indicator').style.transform=`rotate(${choice*270/Math.max(1,m.options.length-1)-135}deg)`;
-  $('#confirm').replaceChildren(document.createTextNode(game?'就是现在！':m.id==='sleep'&&state.sleeping?'早安，叫醒 Momo':m.id==='music'&&music.track===choice?'停止播放':m.verb));
+  $('#confirm').replaceChildren(document.createTextNode(game?'就是现在！':m.id==='sleep'&&state.sleeping?'早安，叫醒 Momo':m.id==='music'&&music.track===choice?'停止播放':m.id==='chat'?['开始语音聊天','打开文字聊天','关闭麦克风'][choice]:m.verb));
   const arrow=document.createElement('span');arrow.textContent='↵';$('#confirm').append(arrow);
   $('#option-dots').replaceChildren(...m.options.map((name,i)=>{const b=document.createElement('button');b.className=i===choice?'active':'';b.setAttribute('aria-label',name);b.setAttribute('aria-pressed',String(i===choice));b.onclick=()=>{if(!game){choice=i;render()}};return b}));
   document.querySelectorAll('.key').forEach((b,i)=>{b.classList.toggle('active',i===mode);b.setAttribute('aria-pressed',String(i===mode))});
@@ -33,22 +34,22 @@ function startTraining(){
   function tick(t){if(!game)return;game.position=(Math.sin((t-game.start)/[720,500,330][game.difficulty]-Math.PI/2)+1)*50;$('#training-dot').style.left=`${game.position}%`;game.frame=requestAnimationFrame(tick)}game.frame=requestAnimationFrame(tick);render();speak('盯住那颗光点！进入绿色区域时按下旋钮。');
 }
 async function confirm(){
-  const m=MODES[mode];if(state.sleeping&&m.id!=='sleep'){speak('先叫醒我，再一起玩吧。');return}
+  const m=MODES[mode];if(m.id==='chat'&&choice===2){voice.stop();speak('麦克风已关闭。想聊时再叫我。');return}if(state.sleeping&&m.id!=='sleep'){speak('先叫醒我，再一起玩吧。');return}
   if(m.id==='train'&&state.energy>=8){if(!game){startTraining();return}const win=Math.abs(game.position-50)<=[15,10,6][game.difficulty];cancelGame();feedback(act(state,m.id,choice,{win}));return}
-  if(m.id==='chat'){openChat();return}
+  if(m.id==='chat'){openChat();if(choice===0)startVoice();return}
   if(m.id==='music'){try{const playing=await music.play(choice);speak(playing?`正在播放「${m.options[choice]}」。就这样，慢慢待一会儿。`:'音乐轻轻停下了。');render()}catch(e){toast(e.message)}return}
   feedback(act(state,m.id,choice));if(state.sleeping){music.stop();render()}
 }
 function openDialog(id){if(!$(id).open)$(id).showModal()}
 function addMessage(role,text,error=false){const e=document.createElement('div');e.className=`message ${role}${error?' error':''}`;e.textContent=text;$('#messages').append(e);$('#messages').scrollTop=$('#messages').scrollHeight;return e}
-function openChat(){if(!history.length){const text='嗨，我是 Momo。今天想和我聊些什么？';addMessage('assistant',text);history.push({role:'assistant',content:text})}openDialog('#chat-dialog');$('#chat-input').placeholder=['今天过得怎么样？','今天有什么让你开心的小事？','有什么事情想让我陪你一起面对？'][choice]||'今天过得怎么样？';$('#chat-input').focus()}
+function openChat(){if(!history.length){const text='嗨，我是 Momo。今天想和我聊些什么？';addMessage('assistant',text);history.push({role:'assistant',content:text})}openDialog('#chat-dialog');$('#chat-input').placeholder='今天过得怎么样？';$('#chat-input').focus()}
 function renderDiary(){const list=$('#diary-list');list.replaceChildren();if(!state.diary.length){const p=document.createElement('p');p.className='empty-diary';p.textContent='🌱\n我们的故事，才刚刚开始。\n给 Momo 一次摸摸，写下第一个小瞬间。';p.style.whiteSpace='pre-line';list.append(p);return}for(const entry of [...state.diary].reverse()){const item=document.createElement('div');item.className='diary-entry';const time=document.createElement('time');time.textContent=new Date(entry.at).toLocaleString('zh-CN',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});const p=document.createElement('p');p.textContent=entry.text;item.append(time,p);list.append(item)}}
 for(const [i,m]of MODES.entries()){const b=document.createElement('button');b.className='key';b.setAttribute('aria-label',`${i+1} ${m.name}`);b.innerHTML=`<span class="key-number">${String(i+1).padStart(2,'0')}</span><span class="key-icon">${m.icon}</span><strong>${m.name}</strong><small>${m.sub}</small>`;b.onclick=()=>select(i);$('#keys').append(b)}
 $('#previous').onclick=()=>rotate(-1);$('#next').onclick=()=>rotate(1);$('#confirm').onclick=confirm;$('#knob').onclick=confirm;
 $('#knob').addEventListener('wheel',e=>{e.preventDefault();if(Math.abs(e.deltaY)>2)rotate(e.deltaY>0?1:-1)},{passive:false});
 document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||e.target.matches('input,textarea,select')||e.metaKey||e.ctrlKey||e.altKey)return;if(e.repeat)return;if(e.key==='Enter'&&e.target.closest('button,a'))return;if(/^[1-8]$/.test(e.key)){e.preventDefault();select(Number(e.key)-1)}else if(e.key==='ArrowLeft'){e.preventDefault();rotate(-1)}else if(e.key==='ArrowRight'){e.preventDefault();rotate(1)}else if(e.key==='Enter'){e.preventDefault();confirm()}else if(e.key==='Escape'){cancelGame();choice=MODES[mode].id==='dress'?state.outfit:0;render();speak('不着急，我们慢慢选。')}});
 let batteryTimer;
-const handleKeyboardEvent=e=>{if(e.type==='battery'){const el=$('#battery-level');el.hidden=false;el.textContent=e.percent<0?'电量未知':`电量 ${e.percent}%`;el.title='键盘电量';clearTimeout(batteryTimer);batteryTimer=setTimeout(()=>{el.textContent='电量待更新'},25000);return}const dialog=document.querySelector('dialog[open]');if(e.type==='long_press'){if(dialog)dialog.close();else{cancelGame();choice=MODES[mode].id==='dress'?state.outfit:0;render();speak('回来啦，我们换一件事做吧。')}return}if(dialog)return;if(e.type==='key')select(e.key-1);if(e.type==='rotate')rotate(e.delta*(reverse?-1:1));if(e.type==='press')confirm()};
+const handleKeyboardEvent=e=>{if(e.type==='battery'){const el=$('#battery-level');el.hidden=false;el.textContent=e.percent<0?'电量未知':`电量 ${e.percent}%`;el.title='键盘电量';clearTimeout(batteryTimer);batteryTimer=setTimeout(()=>{el.textContent='电量待更新'},25000);return}const dialog=document.querySelector('dialog[open]');if(e.type==='long_press'){if(dialog)dialog.close();else{cancelGame();choice=MODES[mode].id==='dress'?state.outfit:0;render();speak('回来啦，我们换一件事做吧。')}return}if(dialog){if(dialog.id==='chat-dialog'&&(e.type==='key'||e.type==='rotate'))dialog.close();else return}if(e.type==='key')select(e.key-1);if(e.type==='rotate')rotate(e.delta*(reverse?-1:1));if(e.type==='press')confirm()};
 const handleKeyboardStatus=(status,text)=>{if(status!=='connected'){clearTimeout(batteryTimer);$('#battery-level').hidden=true}$('#connection').classList.toggle('connected',status==='connected');$('#connection span').textContent=status==='connected'?'EasyInput 已连接':status==='waiting'?'正在连接…':'连接 EasyInput';$('#connection').title=text;if(status!=='connected')toast(text);soundPanel.connectionChanged(status)};
 const usbKeyboard=new KeyboardConnection(handleKeyboardEvent,handleKeyboardStatus);
 const bluetoothKeyboard=new BluetoothConnection(handleKeyboardEvent,handleKeyboardStatus);
@@ -59,7 +60,11 @@ $('#bluetooth-connect').onclick=()=>{if(keyboard.busy)return;if(keyboard.port){t
 $('#diary-open').onclick=()=>{renderDiary();openDialog('#diary-dialog')};$('#settings-open').onclick=()=>openDialog('#settings-dialog');
 document.querySelectorAll('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}}));
 let voiceReply=null;
-const voice=new VoiceChat({createAudio:createBrowserAudio,
+const voiceInput=new VoiceInputSettings({select:$('#voice-input'),refresh:$('#voice-input-refresh'),status:$('#voice-input-status'),onChange:()=>{if(voice.active)voice.stop();toast('语音输入已切换，重新打开麦克风即可使用')}});
+const voice=new VoiceChat({createAudio:options=>{
+  if(voiceInput.value==='easyinput'&&(!usbKeyboard.verified||!usbKeyboard.micSupported)){const e=Error(usbKeyboard.verified?'当前固件不支持键盘麦克风，请升级至 0.5.0 或更新固件，并使用原生 USB 连接。':'请先通过原生 USB 连接 EasyInput，再开启键盘麦克风。');e.name='AudioInputError';throw e}
+  return createBrowserAudio({...options,input:voiceInput.value,connection:usbKeyboard});
+},
   onState:(status,text)=>{
     const active=voice.active;$('#voice-toggle').setAttribute('aria-pressed',String(active));$('#voice-toggle').setAttribute('aria-label',active?'关闭麦克风':'打开麦克风');$('#voice-toggle').title=active?'关闭麦克风':'打开麦克风';
     $('#voice-status').textContent=text;$('#voice-status').dataset.state=status;
@@ -71,7 +76,8 @@ const voice=new VoiceChat({createAudio:createBrowserAudio,
   onText:text=>addMessage('user',text),
   onReply:text=>{if(!voiceReply)voiceReply=addMessage('assistant','');voiceReply.textContent=text;$('#messages').scrollTop=$('#messages').scrollHeight;speak(text)},
 });
-$('#voice-toggle').onclick=()=>{if(voice.active){voice.stop();return}if(chatBusy){toast('请等当前文字回复结束，再打开麦克风');return}music.stop();render();voiceReply=null;void voice.start()};
+function startVoice(){if(voice.active)return;if(chatBusy){toast('请等当前文字回复结束，再打开麦克风');return}music.stop();render();voiceReply=null;void voice.start()}
+$('#voice-toggle').onclick=()=>voice.active?voice.stop():startVoice();
 // The dialog only controls visibility; the voice session belongs to the app.
 $('#voice-reopen').onclick=openChat;
 $('#voice-stop').onclick=()=>voice.stop();

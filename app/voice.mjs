@@ -21,7 +21,7 @@ export class VoiceChat {
       s.socket.onmessage=event=>{if(this.session!==s)return;try{this.receive(s,JSON.parse(event.data))}catch{this.stop('语音服务返回了无法读取的消息，请重试。')}};
       s.socket.onerror=()=>{if(this.session===s)this.stop('无法连接语音服务，请先启动本机 VTuber（端口 12393），再点击麦克风重试。')};
       s.socket.onclose=()=>{if(this.session===s)this.stop('语音连接已断开，点击麦克风重新连接。')};
-    }catch{this.stop('无法启动语音，请检查麦克风与语音服务。')}
+    }catch(e){this.stop(e.name==='AudioInputError'?e.message:'无法启动语音，请检查麦克风与语音服务。')}
   }
   receive(s,m){
     if(m.type==='set-model-and-conf'&&!s.initializing){s.initializing=true;this.send(s,{type:'create-new-history'});return}
@@ -44,7 +44,7 @@ export class VoiceChat {
     this.setState('connecting','正在准备麦克风，首次使用请允许访问…');
     this.watch(s,60000,'麦克风准备超时，请检查权限后重试。');
     try{await s.audio.init();if(this.session!==s){s.audio.dispose();return}await s.audio.listen();if(this.session!==s){s.audio.dispose();return}clearTimeout(s.timer);this.setState('listening','正在听 · 说完稍作停顿，我会回答你')}
-    catch(e){if(this.session===s)this.stop(e.name==='NotAllowedError'?'麦克风未获授权，请在系统设置的「隐私与安全性 → 麦克风」中允许 Momo，再重试。':e.name==='NotFoundError'?'没有找到麦克风，请连接麦克风后重试。':e.name==='NotReadableError'?'麦克风无法使用，可能正被其他应用占用。':'麦克风或语音检测加载失败，请重试。')}
+    catch(e){if(this.session===s)this.stop(e.name==='AudioInputError'?e.message:e.name==='OverconstrainedError'?'所选麦克风不可用，请到设置中重新选择语音输入。':e.name==='NotAllowedError'?'麦克风未获授权，请在系统设置的「隐私与安全性 → 麦克风」中允许 Momo，再重试。':e.name==='NotFoundError'?'没有找到麦克风，请连接麦克风后重试。':e.name==='NotReadableError'?'麦克风无法使用，可能正被其他应用占用。':'麦克风或语音检测加载失败，请重试。')}
   }
   beginTurn(s){s.turn=true;s.synth=false;s.end=false;s.ack=false;s.reply='';this.setState('thinking','正在想 · 请稍等');this.watch(s,120000,'语音回复等待超时，请检查 VTuber 服务与网络后重试。')}
   async submitAudio(samples){

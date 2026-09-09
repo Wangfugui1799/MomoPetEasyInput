@@ -16,7 +16,6 @@ try{
   });
   await page.goto(server.url);await page.keyboard.press('5');await page.keyboard.press('Enter');
   await page.screenshot({path:'docs/momo-voice-desktop.png'});
-  await page.locator('#voice-toggle').click();
   const deadline=Date.now()+150000;
   while(rounds<3&&Date.now()<deadline){await page.waitForTimeout(500);if(await page.locator('#voice-status').getAttribute('data-state')==='error')throw Error(await page.locator('#voice-status').innerText())}
   if(rounds!==3)throw Error('Did not finish three real-backend rounds');

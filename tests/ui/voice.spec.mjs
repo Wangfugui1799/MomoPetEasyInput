@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-async function openChat(page){await page.goto('/');await page.keyboard.press('5');await page.keyboard.press('Enter')}
+async function openChat(page){await page.goto('/');await page.keyboard.press('5');await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter')}
 async function mockVoice(page,{permissionDenied=false}={}){
   await page.addInitScript(({permissionDenied})=>{
     window.voiceSent=[];window.voiceTracks=[];

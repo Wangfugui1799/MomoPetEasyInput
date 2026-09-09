@@ -6,7 +6,7 @@ app.setName('Momo');
 if(!app.requestSingleInstanceLock()){app.quit();process.exit(0)}
 app.on('second-instance',()=>{if(win){if(win.isMinimized())win.restore();win.focus()}});
 async function createWindow(){
-  win=new BrowserWindow({width:1280,height:950,minWidth:850,minHeight:720,title:'Momo · 你的桌面小伙伴',backgroundColor:'#f8f9f4',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
+  win=new BrowserWindow({width:1280,height:950,minWidth:850,minHeight:720,title:'Momo · 你的桌面小伙伴',backgroundColor:'#f8f9f4',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false,autoplayPolicy:'no-user-gesture-required'}});
   const ses=win.webContents.session,origin=server.url;
   ses.setPermissionCheckHandler((contents,permission,requestingOrigin,details)=>allowSerial(contents,permission,requestingOrigin,win.webContents.id,origin)||allowMicrophone(contents,permission,requestingOrigin,win.webContents.id,origin,details));
   ses.setPermissionRequestHandler((contents,permission,callback,details)=>callback((['serial','bluetooth'].includes(permission)&&contents===win.webContents&&sameOrigin(contents.getURL(),origin))||allowMicrophone(contents,permission,details.requestingUrl,win.webContents.id,origin,details,true)));

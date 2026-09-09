@@ -34,7 +34,7 @@ bool input_sound_save(sound_config config){
 }
 static void playback(void *unused){
   (void)unused;i2s_chan_handle_t tx=NULL;
-  i2s_chan_config_t chan=I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO,I2S_ROLE_MASTER);
+  i2s_chan_config_t chan=I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0,I2S_ROLE_MASTER);
   chan.dma_desc_num=2;chan.dma_frame_num=64;chan.auto_clear=true;
   esp_err_t err=i2s_new_channel(&chan,&tx,NULL);
   if(err!=ESP_OK){audio_error("audio_allocate");vTaskDelete(NULL);return;}

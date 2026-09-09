@@ -22,7 +22,7 @@ try{
      return destination.stream;
    };
  },wav);
- await page.getByRole('button',{name:'5 聊天',exact:true}).click();await page.locator('#confirm').click();await page.locator('#voice-toggle').click();
+ await page.getByRole('button',{name:'5 聊天',exact:true}).click();await page.locator('#confirm').click();
  await page.waitForFunction(()=>['listening','error'].includes(document.querySelector('#voice-status').dataset.state),{},{timeout:60000});
  const status=await page.locator('#voice-status').textContent();console.log(status);if(!status.includes('正在听'))throw Error(status);
  await page.getByRole('button',{name:'关闭聊天',exact:true}).click();

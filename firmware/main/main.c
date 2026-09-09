@@ -13,6 +13,7 @@
 #include "battery.h"
 #include "input_sound.h"
 #include "sound_commands.h"
+#include "microphone.h"
 
 // EasyInput V2.0 / PCB AI Keyboard V2.1. These are physical board pins.
 static const gpio_num_t KEY_PINS[9]={2,47,38,41,1,6,7,48,18};
@@ -55,15 +56,22 @@ void app_main(void){
   events=xQueueCreate(32,sizeof(input_event));configASSERT(events);
   BaseType_t created=xTaskCreate(sample_inputs,"momo_inputs",3072,NULL,5,NULL);configASSERT(created==pdPASS);
   uint32_t last_battery=millis()-10000;
-  uint32_t last_hello=millis()-2000;char line[512];command_buffer usb_commands={0},uart_commands={0};
+  uint32_t last_hello=millis()-2000;static char line[512];static command_buffer usb_commands={0},uart_commands={0},mic_commands={0};
   for(;;){
-    uint32_t now=millis();if((uint32_t)(now-last_hello)>=2000){last_hello=now;momo_ble_send(0,0);portENTER_CRITICAL(&dropped_lock);uint32_t dropped=dropped_events;portEXIT_CRITICAL(&dropped_lock);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.4.0\",\"sound\":true,\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);write_line(line);}
+    uint32_t now=millis();if((uint32_t)(now-last_hello)>=2000){last_hello=now;momo_ble_send(0,0);portENTER_CRITICAL(&dropped_lock);uint32_t dropped=dropped_events;portEXIT_CRITICAL(&dropped_lock);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.5.0\",\"sound\":true,\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);uart_write_bytes(UART_NUM_0,line,strlen(line));
+      // Advertise microphone only on the native USB port.
+      snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.5.0\",\"sound\":true,\"mic\":\"pcm16-usb-v1\",\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);
+      usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));}
     if((uint32_t)(millis()-last_battery)>=10000){last_battery=millis();int percent=battery_percent();momo_ble_send(5,percent<0?255:percent);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"battery\",\"percent\":%d}\n",PROTOCOL,percent);write_line(line);}
     char rx[64];int count=usb_serial_jtag_read_bytes(rx,sizeof(rx),0);
-    for(int i=0;i<count;i++)if(sound_command_byte(&usb_commands,rx[i],line,sizeof(line)))usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));
+    for(int i=0;i<count;i++){
+      if(sound_command_byte(&usb_commands,rx[i],line,sizeof(line)))usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));
+      if(microphone_command_byte(&mic_commands,rx[i],line,sizeof(line),millis()))usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));
+    }
+    for(int i=0;i<4&&microphone_poll(line,sizeof(line),millis());i++){size_t len=strlen(line);if(usb_serial_jtag_write_bytes(line,len,pdMS_TO_TICKS(5))!=(int)len){microphone_transport_failed();break;}}
     count=uart_read_bytes(UART_NUM_0,rx,sizeof(rx),0);
     for(int i=0;i<count;i++)if(sound_command_byte(&uart_commands,rx[i],line,sizeof(line)))uart_write_bytes(UART_NUM_0,line,strlen(line));
-    input_event e;if(xQueueReceive(events,&e,pdMS_TO_TICKS(5))==pdTRUE){
+    input_event e;if(xQueueReceive(events,&e,pdMS_TO_TICKS(microphone_active()?1:5))==pdTRUE){
       if(e.type==1)snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"key\",\"key\":%d}\n",PROTOCOL,e.value);
       else if(e.type==2)snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"rotate\",\"delta\":%d}\n",PROTOCOL,e.value);
       else {snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"%s\"}\n",PROTOCOL,e.type==3?"press":"long_press");}

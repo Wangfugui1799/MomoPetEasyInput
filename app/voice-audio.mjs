@@ -1,10 +1,11 @@
+import {createKeyboardVAD} from './keyboard-vad.mjs';
 let scripts;
 function loadScript(src){return new Promise((resolve,reject)=>{const tag=document.createElement('script');tag.src=src;tag.onload=resolve;tag.onerror=()=>{tag.remove();reject(Error('Audio assets unavailable'))};document.head.append(tag)})}
 async function loadVAD(){
   if(!scripts)scripts=(async()=>{await loadScript('/voice-assets/ort.wasm.min.js');await loadScript('/voice-assets/bundle.min.js')})().catch(e=>{scripts=null;throw e});
   await scripts;return window.vad.MicVAD;
 }
-export function createBrowserAudio({onSpeech,onLimit,onError}){
+export function createBrowserAudio({onSpeech,onLimit,onError,input='default',connection}){
   const ctx=new AudioContext();const unlocked=ctx.resume();unlocked.catch(()=>{});
   let stream,vad,disposed=false,source,finishPlay,speechTimer,captureContext;
   const check=()=>{if(disposed)throw Error('Voice stopped')};
@@ -13,7 +14,11 @@ export function createBrowserAudio({onSpeech,onLimit,onError}){
   return {
     async init(){
       await unlocked;check();const MicVAD=await loadVAD();check();
-      stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+      if(input==='easyinput'){
+        try{vad=await createKeyboardVAD(connection,{onSpeech,onLimit,onError})}catch(e){e.name='AudioInputError';throw e}
+        if(disposed)vad.destroy();return;
+      }
+      stream=await navigator.mediaDevices.getUserMedia({audio:{...(input!=='default'?{deviceId:{exact:input}}:{}),channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
       if(disposed){stopTracks();return}
       stream.getAudioTracks().forEach(t=>t.addEventListener('ended',()=>{if(!disposed)onError('麦克风已断开，请检查设备后重试。')}));
       // vad-web 0.0.29 owns its capture AudioContext. Retain it here so failed
