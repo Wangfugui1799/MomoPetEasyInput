@@ -11,7 +11,7 @@
     "test": "node --test tests/*.test.mjs",
     "test:firmware": "cc -std=c11 -Wall -Wextra -Werror firmware/main/input_logic.c firmware/tests/input_test.c -o /tmp/momo-input-test && /tmp/momo-input-test",
     "test:ui": "playwright test",
-    "package:mac": "electron-packager . Momo --platform=darwin --arch=arm64 --out=dist --overwrite --extend-info=desktop/Info.plist --ignore='^/(firmware|tests|test-results|docs|dist|scripts|playwright.config.mjs)'",
+    "package:mac": "electron-packager . Momo --platform=darwin --arch=arm64 --out=dist --overwrite --extend-info=desktop/Info.plist --ignore='^/(firmware|tests|test-results|docs|dist|scripts|build-ble|备份文档|playwright.config.mjs)'",
     "test:firmware:sound": "cc -std=c11 -Wall -Wextra -Werror firmware/main/input_logic.c firmware/main/input_sound_logic.c firmware/tests/sound_test.c -o /tmp/momo-sound-test && /tmp/momo-sound-test",
     "test:firmware:commands": "bash scripts/test-sound-commands.sh"
   },
@@ -22,5 +22,9 @@
     "@electron/packager": "19.0.1",
     "@playwright/test": "1.58.2",
     "electron": "40.0.0"
+  },
+  "dependencies": {
+    "@ricky0123/vad-web": "0.0.29",
+    "onnxruntime-web": "1.22.0"
   }
 }

@@ -1,7 +1,11 @@
 import http from 'node:http';import {readFile} from 'node:fs/promises';import {fileURLToPath} from 'node:url';import path from 'node:path';
 const root=fileURLToPath(new URL('./app/',import.meta.url));
-const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','bluetooth.mjs','protocol.mjs','sound.mjs','keyboard-sound.mjs']);
-const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
+const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','bluetooth.mjs','protocol.mjs','sound.mjs','keyboard-sound.mjs','voice.mjs','voice-audio.mjs']);
+const voiceAssets=new Map([
+  ...['bundle.min.js','vad.worklet.bundle.min.js','silero_vad_v5.onnx'].map(name=>['voice-assets/'+name,fileURLToPath(new URL('./node_modules/@ricky0123/vad-web/dist/'+name,import.meta.url))]),
+  ...['ort.wasm.min.js','ort-wasm-simd-threaded.mjs','ort-wasm-simd-threaded.wasm'].map(name=>['voice-assets/'+name,fileURLToPath(new URL('./node_modules/onnxruntime-web/dist/'+name,import.meta.url))]),
+]);
+const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.js':'text/javascript; charset=utf-8','.wasm':'application/wasm','.onnx':'application/octet-stream'};
 export function validateChat(data){
   if(!data||typeof data.endpoint!=='string'||typeof data.key!=='string'||!data.key||data.key.length>2048||typeof data.model!=='string'||!data.model.trim()||data.model.length>100)throw Error('请检查 AI 接口、模型名称和密钥');
   const url=new URL(data.endpoint);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error('AI 接口需要使用 HTTPS 地址');
@@ -13,7 +17,7 @@ export function validateChat(data){
 export async function startServer({port=4783,host='127.0.0.1',fetchImpl=fetch}={}){
   let origin;
   const server=http.createServer(async(req,res)=>{
-    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws://127.0.0.1:12393; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
     res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','no-store');
     const json=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data))};
     if(req.headers.host!==new URL(origin).host){json(403,{error:'Host rejected'});return}
@@ -30,8 +34,8 @@ export async function startServer({port=4783,host='127.0.0.1',fetchImpl=fetch}={
       }catch{json(502,{error:'无法连接 AI 服务或等待超时，请稍后重试。'})}return;
     }
     if(req.method!=='GET'&&req.method!=='HEAD'){json(405,{error:'Method not allowed'});return}
-    const name=req.url==='/'?'index.html':req.url?.slice(1);if(!allowed.has(name)){json(404,{error:'Not found'});return}
-    try{const data=await readFile(path.join(root,name));res.writeHead(200,{'Content-Type':mime[path.extname(name)]});res.end(req.method==='HEAD'?undefined:data)}catch{json(500,{error:'Unable to load app'})}
+    const name=req.url==='/'?'index.html':req.url?.slice(1);if(!allowed.has(name)&&!voiceAssets.has(name)){json(404,{error:'Not found'});return}
+    try{const data=await readFile(voiceAssets.get(name)||path.join(root,name));res.writeHead(200,{'Content-Type':mime[path.extname(name)]});res.end(req.method==='HEAD'?undefined:data)}catch{json(500,{error:'Unable to load app'})}
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,host,resolve)});origin=`http://${host}:${server.address().port}`;
   return {server,url:origin,close:()=>new Promise(resolve=>server.close(resolve))};

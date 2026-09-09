@@ -1,3 +1,5 @@
+import {VoiceChat} from './voice.mjs';
+import {createBrowserAudio} from './voice-audio.mjs';
 import {KeyboardSoundPanel} from './keyboard-sound.mjs';
 import {MODES,initialState,restoreState,ageState,act,localReply,addDiary} from './core.mjs';
 import {BluetoothConnection} from './bluetooth.mjs';
@@ -56,8 +58,24 @@ $('#connection').onclick=()=>{if(keyboard.busy)return;if(keyboard.port)return ke
 $('#bluetooth-connect').onclick=()=>{if(keyboard.busy)return;if(keyboard.port){toast('请先点击连接状态断开当前键盘');return}keyboard=bluetoothKeyboard;return keyboard.connect()};
 $('#diary-open').onclick=()=>{renderDiary();openDialog('#diary-dialog')};$('#settings-open').onclick=()=>openDialog('#settings-dialog');
 document.querySelectorAll('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}}));
+let voiceReply=null;
+const voice=new VoiceChat({createAudio:createBrowserAudio,
+  onState:(status,text)=>{
+    const active=voice.active;$('#voice-toggle').setAttribute('aria-pressed',String(active));$('#voice-toggle').setAttribute('aria-label',active?'关闭麦克风':'打开麦克风');$('#voice-toggle').title=active?'关闭麦克风':'打开麦克风';
+    $('#voice-status').textContent=text;$('#voice-status').dataset.state=status;
+    $('#chat-input').disabled=active&&status!=='listening';$('#send-chat').disabled=chatBusy||(active&&status!=='listening');
+    $('#chat-badge').textContent=active?'语音聊天 · VTuber':ai?'AI 对话 · '+ai.model:'本地陪伴 · 预设回复';
+    if(status==='listening')voiceReply=null;
+  },
+  onText:text=>addMessage('user',text),
+  onReply:text=>{if(!voiceReply)voiceReply=addMessage('assistant','');voiceReply.textContent=text;$('#messages').scrollTop=$('#messages').scrollHeight;speak(text)},
+});
+$('#voice-toggle').onclick=()=>{if(voice.active){voice.stop();return}if(chatBusy){toast('请等当前文字回复结束，再打开麦克风');return}music.stop();render();voiceReply=null;void voice.start()};
+$('#chat-dialog').addEventListener('cancel',()=>voice.stop());
+$('#chat-dialog').addEventListener('close',()=>{voice.stop();voiceReply=null});
+window.addEventListener('beforeunload',()=>voice.stop());
 $('#chat-form').onsubmit=async e=>{
-  e.preventDefault();const input=$('#chat-input').value.trim();if(!input||chatBusy)return;chatBusy=true;$('#send-chat').disabled=true;$('#chat-input').value='';addMessage('user',input);history.push({role:'user',content:input});history=history.slice(-24);const pending=addMessage('assistant','Momo 正在想……');
+  e.preventDefault();const input=$('#chat-input').value.trim();if(!input||chatBusy)return;if(voice.active){if(await voice.submitText(input))$('#chat-input').value='';return}chatBusy=true;$('#send-chat').disabled=true;$('#chat-input').value='';addMessage('user',input);history.push({role:'user',content:input});history=history.slice(-24);const pending=addMessage('assistant','Momo 正在想……');
   try{let reply;if(ai){const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...ai,messages:history.slice(-12),pet:{mood:Math.round(state.mood),energy:Math.round(state.energy)}}),signal:AbortSignal.timeout(35000)});const data=await res.json();if(!res.ok)throw Error(data.error||'AI 暂时没有回应');reply=data.reply}else{await new Promise(r=>setTimeout(r,450));reply=localReply(input)}pending.textContent=reply;history.push({role:'assistant',content:reply});state=addDiary(state,'我们聊了一会儿天。被听见的感觉，真好。');state.mood=Math.min(100,state.mood+2);save();render();speak('谢谢你愿意和我分享。我一直在这里。')}
   catch(err){pending.textContent=`${err.name==='TimeoutError'?'等待 AI 超时，请稍后再试。':err.message}（可在设置中恢复本地陪伴）`;pending.classList.add('error')}
   finally{chatBusy=false;$('#send-chat').disabled=false;$('#messages').scrollTop=$('#messages').scrollHeight}

@@ -66,10 +66,24 @@ npm run package:mac
 当前打包脚本面向 Apple Silicon。Intel Mac 可另行构建 x64 版本，尚未实测：
 
 ```sh
-npx electron-packager . Momo --platform=darwin --arch=x64 --out=dist --overwrite --ignore='^/(firmware|tests|test-results|docs|dist|scripts|playwright.config.mjs)'
+npx electron-packager . Momo --platform=darwin --arch=x64 --out=dist --overwrite --extend-info=desktop/Info.plist --ignore='^/(firmware|tests|test-results|docs|dist|scripts|playwright.config.mjs)'
 ```
 
 应用尚未进行 Developer ID 签名和公证，目前验证范围为本机运行。
+
+## 麦克风语音聊天
+
+聊天输入框左侧新增麦克风开关。先启动本机 Open-LLM-VTuber（`127.0.0.1:12393`），再打开 Momo 的「聊天」，点击麦克风并允许访问电脑麦克风。
+
+- 说完停顿约一秒，自动识别文字并生成回答，使用 VTuber 当前 TTS 声音播放。
+- 「正在想／正在说」时暂停接收下一句话；恢复「正在听」后继续说，无需重复打开。
+- 再次点击麦克风、关闭聊天或按 Escape 即停止采集与播放。一次说话最多一分钟，不支持抢话。
+- 麦克风开启时，文字发送也走 VTuber；关闭后恢复原来的本地预设／已配置 AI 文字聊天。
+- 语音识别走本机后端；识别文字及对话由 VTuber 配置的 AI 服务处理，VTuber 会保存历史。角色性格、模型和 TTS 声音沿用后端当前配置。
+
+VAD 模型、ONNX Runtime 和工作线程均从本地依赖加载，无需 CDN。电脑麦克风授权失败时，请检查 macOS「系统设置 → 隐私与安全性 → 麦克风」。开发模式可能显示为 Electron，打包后显示为 Momo。
+
+[语音验证记录](docs/VOICE-CHAT-VALIDATION.md)区分了自动化验证和真人收音验收。
 
 ## 八键与旋钮
 
@@ -81,7 +95,7 @@ npx electron-packager . Momo --platform=darwin --arch=x64 --out=dist --overwrite
 | S2 | 🤏 摸摸 | 摸头 / 拥抱 / 按摩 | 增加心情与亲密度 |
 | S3 | 🎯 训练 | 三档难度 | 开始小游戏，光点进入绿色区时再次按下 |
 | S4 | 🧭 探索 | 窗边花园 / 云朵小径 / 星光池塘 | 消耗体力，产生随机事件；两次探索至少间隔 30 秒 |
-| S5 | 💬 聊天 | 今天 / 开心事 / 鼓励 | 打开文字对话，通过电脑键盘输入 |
+| S5 | 💬 聊天 | 今天 / 开心事 / 鼓励 | 打开聊天，可输入文字或点击麦克风语音聊天 |
 | S6 | 🎩 装扮 | 原样 / 礼帽 / 花朵 / 派对帽 | 保存当前装扮；旋转时仅预览 |
 | S7 | 🎵 音乐 | 云端钢琴 / 午后风铃 / 晚安星河 | 播放，再次确认同一首时停止 |
 | S8 | 🌙 睡觉 | 三种休息选项 | 切换睡眠 / 唤醒；当前选项共享相同休息逻辑，无定时闹钟 |

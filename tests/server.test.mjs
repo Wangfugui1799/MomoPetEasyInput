@@ -4,3 +4,13 @@ test('local API rejects foreign origins and never serves filesystem paths',async
 test('provider failure produces useful errors without leaking credentials',async()=>{const s=await startServer({port:0,fetchImpl:async()=>new Response('secret-upstream-body',{status:401})});try{const r=await fetch(s.url+'/api/chat',{method:'POST',headers:{Origin:s.url,'Content-Type':'application/json'},body:JSON.stringify({endpoint:'https://example.com/chat/completions',key:'private-secret',model:'momo',messages:[{role:'user',content:'hi'}]})});const body=await r.text();assert.equal(r.status,502);assert.match(body,/401/);assert.doesNotMatch(body,/secret/)}finally{await s.close()}});
 
 test('sound settings module is served with JavaScript MIME',async()=>{const s=await startServer({port:0});try{const r=await fetch(s.url+'/keyboard-sound.mjs');assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/javascript/);assert.match(await r.text(),/KeyboardSoundPanel/)}finally{await s.close()}});
+
+test('voice assets are local, explicitly allowed, and carry correct MIME and CSP',async()=>{
+  const s=await startServer({port:0});try{
+    for(const [name,mime] of [['voice.mjs','javascript'],['voice-audio.mjs','javascript'],['voice-assets/bundle.min.js','javascript'],['voice-assets/ort-wasm-simd-threaded.mjs','javascript'],['voice-assets/ort-wasm-simd-threaded.wasm','application/wasm'],['voice-assets/silero_vad_v5.onnx','application/octet-stream']]){
+      const r=await fetch(s.url+'/'+name);assert.equal(r.status,200,name);assert.ok(r.headers.get('content-type').includes(mime));await r.arrayBuffer();
+    }
+    for(const name of ['voice-assets/package.json','node_modules/onnxruntime-web/package.json','voice-assets/../package.json'])assert.equal((await fetch(s.url+'/'+name)).status,404);
+    const r=await fetch(s.url);const csp=r.headers.get('content-security-policy');assert.match(csp,/ws:\/\/127\.0\.0\.1:12393/);assert.match(csp,/'wasm-unsafe-eval'/);assert.doesNotMatch(csp,/(?:https:|\*)/);
+  }finally{await s.close()}
+});

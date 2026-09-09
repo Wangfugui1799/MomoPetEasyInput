@@ -3,4 +3,5 @@
 <plist version="1.0"><dict>
 <key>NSBluetoothAlwaysUsageDescription</key><string>Momo 使用蓝牙连接 EasyInput，接收按键和旋钮操作来与你的桌宠互动。</string>
 <key>NSBluetoothPeripheralUsageDescription</key><string>Momo 使用蓝牙连接 EasyInput 键盘。</string>
+<key>NSMicrophoneUsageDescription</key><string>Momo 使用电脑麦克风与你语音聊天，仅在你打开麦克风后采集声音。</string>
 </dict></plist>

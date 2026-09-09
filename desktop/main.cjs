@@ -1,14 +1,15 @@
 const {app,BrowserWindow,ipcMain,dialog,Menu}=require('electron');
 const path=require('node:path');let server,win;
 const {sameOrigin,allowSerial}=require('./serial-policy.cjs');
+const {allowMicrophone}=require('./media-policy.cjs');
 app.setName('Momo');
 if(!app.requestSingleInstanceLock()){app.quit();process.exit(0)}
 app.on('second-instance',()=>{if(win){if(win.isMinimized())win.restore();win.focus()}});
 async function createWindow(){
   win=new BrowserWindow({width:1280,height:950,minWidth:850,minHeight:720,title:'Momo · 你的桌面小伙伴',backgroundColor:'#f8f9f4',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
   const ses=win.webContents.session,origin=server.url;
-  ses.setPermissionCheckHandler((contents,permission,requestingOrigin)=>allowSerial(contents,permission,requestingOrigin,win.webContents.id,origin));
-  ses.setPermissionRequestHandler((contents,permission,callback)=>callback(['serial','bluetooth'].includes(permission)&&contents===win.webContents&&contents.getURL().startsWith(origin+'/')));
+  ses.setPermissionCheckHandler((contents,permission,requestingOrigin,details)=>allowSerial(contents,permission,requestingOrigin,win.webContents.id,origin)||allowMicrophone(contents,permission,requestingOrigin,win.webContents.id,origin,details));
+  ses.setPermissionRequestHandler((contents,permission,callback,details)=>callback((['serial','bluetooth'].includes(permission)&&contents===win.webContents&&sameOrigin(contents.getURL(),origin))||allowMicrophone(contents,permission,details.requestingUrl,win.webContents.id,origin,details,true)));
   ses.removeAllListeners('select-serial-port');
   ses.on('select-serial-port',async(event,ports,contents,callback)=>{
     event.preventDefault();if(contents?.id!==win.webContents.id||!sameOrigin(contents.getURL(),origin)){callback('');return}
