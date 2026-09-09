@@ -77,7 +77,7 @@ npx electron-packager . Momo --platform=darwin --arch=x64 --out=dist --overwrite
 
 EasyInput 板载麦克风需要 **0.5.0 固件及原生 USB Serial/JTAG 连接**，UART 桥接和 BLE 不传音频。断线或设备不可用时会停止并提示，不会偷偷切换到电脑麦克风。切换设置中的输入会停止当前语音，下次开始使用新音源。回复仍从电脑播放。
 
-0.5.0 已完成电脑测试、模拟 USB 音频的真实 VAD／VTuber 三轮验证与 ESP-IDF 构建；**尚未烧录本版、尚未实板验证板载麦克风**。详见 [键盘语音输入说明](docs/KEYBOARD-VOICE-INPUT.md)。
+0.5.0 已完成电脑测试、模拟 USB 音频的真实 VAD／VTuber 三轮验证与 ESP-IDF 构建；**已完成本版应用区烧录并通过数据校验；重启运行和板载麦克风实板收音仍待验证**。详见 [键盘语音输入说明](docs/KEYBOARD-VOICE-INPUT.md)。
 
 - 说完停顿约一秒，自动识别文字并生成回答，使用 VTuber 当前 TTS 声音播放。
 - 「正在想／正在说」时暂停接收下一句话；恢复「正在听」后继续说，无需重复打开。
