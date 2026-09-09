@@ -11,11 +11,17 @@
     "test": "node --test tests/*.test.mjs",
     "test:firmware": "cc -std=c11 -Wall -Wextra -Werror firmware/main/input_logic.c firmware/tests/input_test.c -o /tmp/momo-input-test && /tmp/momo-input-test",
     "test:ui": "playwright test",
-    "package:mac": "electron-packager . Momo --platform=darwin --arch=arm64 --out=dist --overwrite --extend-info=desktop/Info.plist --ignore='^/(firmware|tests|test-results|docs|dist|scripts|build-ble|备份文档|playwright.config.mjs)'",
+    "package:mac": "electron-packager . Momo --platform=darwin --arch=arm64 --out=dist --overwrite --extend-info=desktop/Info.plist --ignore='^/(voice-server|.cache|firmware|tests|test-results|docs|dist|scripts|build-ble|备份文档|playwright.config.mjs)'",
     "test:firmware:sound": "cc -std=c11 -Wall -Wextra -Werror firmware/main/input_logic.c firmware/main/input_sound_logic.c firmware/tests/sound_test.c -o /tmp/momo-sound-test && /tmp/momo-sound-test",
     "test:firmware:commands": "bash scripts/test-sound-commands.sh",
     "test:firmware:mic": "cc -std=c11 -Wall -Wextra -Werror firmware/main/microphone_logic.c firmware/tests/microphone_test.c -o /tmp/momo-mic-test && /tmp/momo-mic-test",
-    "test:firmware:mic-commands": "bash scripts/test-microphone-commands.sh"
+    "test:firmware:mic-commands": "bash scripts/test-microphone-commands.sh",
+    "voice:install": "uv sync --locked --project voice-server",
+    "voice:check": "uv run --locked --project voice-server voice-server/run_momo.py --check",
+    "voice:server": "uv run --locked --project voice-server voice-server/run_momo.py",
+    "voice:setup": "node scripts/setup-voice.mjs",
+    "start:voice": "node scripts/start-with-voice.mjs",
+    "test:voice-server": "uv run --locked --project voice-server python -m unittest discover -s voice-server/tests"
   },
   "engines": {
     "node": ">=22"

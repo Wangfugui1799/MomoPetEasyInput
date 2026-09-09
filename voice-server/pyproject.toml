@@ -1,0 +1,16 @@
+[project]
+name = "momo-voice-server"
+version = "0.5.0"
+description = "Momo voice backend based on Open-LLM-VTuber 1.2.1"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+  "jinja2==3.1.6", "anthropic==0.76.0", "chardet==5.2.0", "edge-tts==7.2.7",
+  "fastapi==0.128.0", "httpx==0.28.1", "langdetect==1.0.9",
+  "loguru==0.7.3", "mcp==1.26.0", "numpy==1.26.4",
+  "onnxruntime==1.23.2", "openai==2.15.0", "pydub==0.25.1",
+  "pysbd==0.3.4", "pyyaml==6.0.3", "python-dotenv==1.2.1",
+  "requests==2.32.5", "ruamel-yaml==0.19.1", "scipy==1.15.3",
+  "sherpa-onnx==1.10.46", "soundfile==0.13.1", "tomli==2.4.0",
+  "tqdm==4.67.1", "uvicorn[standard]==0.40.0",
+  "websocket-client==1.9.0", "letta-client==1.7.6",
+]

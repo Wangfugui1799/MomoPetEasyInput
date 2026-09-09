@@ -1,0 +1,13 @@
+[
+  {
+    "name": "momo",
+    "description": "Momo desktop client; no Live2D asset required",
+    "url": "",
+    "kScale": 1,
+    "initialXshift": 0,
+    "initialYshift": 0,
+    "kXOffset": 0,
+    "idleMotionGroupName": "Idle",
+    "emotionMap": {}
+  }
+]

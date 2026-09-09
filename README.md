@@ -8,7 +8,7 @@
 
 **V0.5.0 · Electron · ESP32-S3 · USB Serial / BLE**
 
-[快速开始](#快速开始) · [八键与旋钮](#八键与旋钮) · [连接开发板](#连接开发板) · [AI-对话](#ai-对话) · [验证状态](#验证状态)
+[快速开始](#快速开始) · [八键与旋钮](#八键与旋钮) · [连接开发板](#连接开发板) · [语音安装教程](docs/VOICE-SETUP.md) · [AI-对话](#ai-对话) · [验证状态](#验证状态)
 
 ![Momo 桌面界面：宠物房间、旋钮控制台、状态条与八键活动](docs/momo-desktop.png)
 
@@ -34,6 +34,7 @@
 | 桌面应用 | Node.js 22+、npm；已在 Apple Silicon Mac 上验证 |
 | 浏览器预览 | 现代桌面浏览器；连接硬件需要支持 Web Serial 的 Chrome / Edge |
 | 配套硬件 | EasyInput V2.0，PCB 丝印 AI Keyboard V2.1，ESP32-S3、16 MB Flash |
+| 语音聊天 | uv、Python 3.10–3.12、FFmpeg、自己的 AI 密钥；详见语音安装教程 |
 | 固件构建 | ESP-IDF 5.5.5，已安装 ESP32-S3 工具链 |
 
 ### 启动桌面应用
@@ -66,14 +67,26 @@ npm run package:mac
 当前打包脚本面向 Apple Silicon。Intel Mac 可另行构建 x64 版本，尚未实测：
 
 ```sh
-npx electron-packager . Momo --platform=darwin --arch=x64 --out=dist --overwrite --extend-info=desktop/Info.plist --ignore='^/(firmware|tests|test-results|docs|dist|scripts|playwright.config.mjs)'
+npx electron-packager . Momo --platform=darwin --arch=x64 --out=dist --overwrite --extend-info=desktop/Info.plist --ignore='^/(voice-server|.cache|firmware|tests|test-results|docs|dist|scripts|playwright.config.mjs)'
 ```
 
 应用尚未进行 Developer ID 签名和公证，目前验证范围为本机运行。
 
 ## 麦克风语音聊天
 
-先启动本机 Open-LLM-VTuber（`127.0.0.1:12393`）。在设置的「语音输入」中选择系统默认麦克风、具体电脑麦克风或 EasyInput 板载麦克风，选择会保存为默认。然后按 S5，转动旋钮选择「语音聊天」，短按旋钮开始。选择「文字聊天」只打开聊天框，也可随时点击输入框左侧的麦克风开关。
+配套服务端源码已包含在本仓库的 `voice-server/`。首次安装请按 **[详细使用教程](docs/VOICE-SETUP.md)** 安装 uv、FFmpeg，然后运行：
+
+```sh
+npm run voice:install
+npm run voice:setup
+# 编辑 voice-server/.env，填写自己的 AI 密钥
+npm run voice:check
+npm run start:voice
+```
+
+第一次启动会下载并校验本机识别模型；AI 回答和 Edge TTS 仍需联网。服务端监听 `127.0.0.1:12393`，无需另外下载上游项目。
+
+在设置的「语音输入」中选择系统默认麦克风、具体电脑麦克风或 EasyInput 板载麦克风，选择会保存为默认。然后按 S5，转动旋钮选择「语音聊天」，短按旋钮开始。选择「文字聊天」只打开聊天框，也可随时点击输入框左侧的麦克风开关。
 
 EasyInput 板载麦克风需要 **0.5.0 固件及原生 USB Serial/JTAG 连接**，UART 桥接和 BLE 不传音频。断线或设备不可用时会停止并提示，不会偷偷切换到电脑麦克风。切换设置中的输入会停止当前语音，下次开始使用新音源。回复仍从电脑播放。
 
@@ -210,7 +223,9 @@ idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/buil
 
 点击“使用 AI 对话”后，下一条消息会尝试调用服务；保存配置本身不会测试连接。也可以随时选择“恢复本地陪伴”。外部服务的可用性、费用和模型兼容性由服务商决定，本项目不附带调用额度。
 
-### 数据保存与发送范围
+### 文字聊天的数据保存与发送范围
+
+以下仅适用于麦克风关闭时的原文字聊天。语音服务端会保存历史，详见 [语音数据说明](docs/VOICE-SETUP.md#11-本地文件隐私与更新)。
 
 - **保存在本机**：宠物状态、确认后的装扮和最多 200 条日记。日记可导出，也可在设置中清除。
 - **仅保留在本次打开期间**：聊天正文、AI 配置和密钥。密钥不写入 `localStorage`，关闭应用后需要重新填写。
@@ -224,6 +239,7 @@ idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/buil
 ```text
 .
 ├── app/                    # 界面、宠物状态、串口协议、合成音乐
+├── voice-server/           # 配套 Python 语音后端、依赖锁文件与配置模板
 ├── desktop/                # Electron 窗口、设备选择、权限与置顶
 ├── firmware/
 │   ├── main/               # GPIO 采样、消抖、编码器、事件发送
@@ -242,6 +258,7 @@ idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/buil
 
 | 命令 | 用途 |
 | --- | --- |
+| `npm run test:voice-server` | 配置、模型校验和本机连接边界测试 |
 | `npm test` | 电脑侧状态、协议、权限边界和 AI 转发测试 |
 | `npm run test:firmware:sound` | 验证音效合并、静音、包络与配置编码 |
 | `npm run test:firmware:commands` | 使用本项目 SDK 的 cJSON 验证设备命令与失败回执 |
@@ -310,7 +327,7 @@ idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/buil
 
 如需提供可下载的 `.app` 或固件包，可单独作为 Release 附件发布，注明版本、适用平台、写入范围和验证状态。当前 README 不提供尚未创建的 Release 下载链接。
 
-仓库尚未附带 `LICENSE` 文件；开源许可证需要由维护者确定。
+Momo 自有代码尚未附带根级 `LICENSE` 文件，许可证由维护者确定。配套语音核心保留 [上游 MIT 许可证](voice-server/LICENSE) 和 [来源清单](voice-server/UPSTREAM.json)；模型按各自许可证使用，未打包 Live2D 资产。
 
 ## 技术资料
 
