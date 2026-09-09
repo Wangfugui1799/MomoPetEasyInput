@@ -77,7 +77,7 @@ npx electron-packager . Momo --platform=darwin --arch=x64 --out=dist --overwrite
 
 - 说完停顿约一秒，自动识别文字并生成回答，使用 VTuber 当前 TTS 声音播放。
 - 「正在想／正在说」时暂停接收下一句话；恢复「正在听」后继续说，无需重复打开。
-- 再次点击麦克风、关闭聊天或按 Escape 即停止采集与播放。一次说话最多一分钟，不支持抢话。
+- 关闭聊天窗口或按 Escape 后仍可继续语音聊天；主界面显示语音状态，可查看对话或关闭麦克风。点击关闭麦克风或退出应用才停止采集与播放。一次说话最多一分钟，不支持抢话。
 - 麦克风开启时，文字发送也走 VTuber；关闭后恢复原来的本地预设／已配置 AI 文字聊天。
 - 语音识别走本机后端；识别文字及对话由 VTuber 配置的 AI 服务处理，VTuber 会保存历史。角色性格、模型和 TTS 声音沿用后端当前配置。
 
@@ -246,7 +246,7 @@ idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/buil
 | `npm run package:mac` | 构建 Apple Silicon Mac 应用 |
 | `node scripts/smoke-desktop.mjs` | 检查打包应用的启动、八键渲染、Node 隔离和置顶 |
 
-固件宿主测试需要可用的 `cc`。界面测试默认使用 `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`；如果浏览器安装位置不同，需要调整 `playwright.config.mjs`。桌面启动检查前请先打包并关闭正在运行的 Momo，避免单实例与端口冲突。
+固件宿主测试需要可用的 `cc`。界面测试默认使用 `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`；如果浏览器安装位置不同，需要调整 `playwright.config.mjs`；本机已安装 Playwright Chromium 时，可用 `MOMO_TEST_BROWSER=bundled npm run test:ui`。桌面启动检查前请先打包并关闭正在运行的 Momo，避免单实例与端口冲突。
 
 ### 验证状态
 

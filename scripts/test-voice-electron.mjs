@@ -25,10 +25,14 @@ try{
  await page.getByRole('button',{name:'5 聊天',exact:true}).click();await page.locator('#confirm').click();await page.locator('#voice-toggle').click();
  await page.waitForFunction(()=>['listening','error'].includes(document.querySelector('#voice-status').dataset.state),{},{timeout:60000});
  const status=await page.locator('#voice-status').textContent();console.log(status);if(!status.includes('正在听'))throw Error(status);
+ await page.getByRole('button',{name:'关闭聊天',exact:true}).click();
+ if(await page.locator('#chat-dialog').isVisible()||!(await page.locator('#voice-panel').isVisible()))throw Error('Background voice panel missing');
  await page.waitForFunction(()=>document.querySelectorAll('.message.user').length>0||document.querySelector('#voice-status').dataset.state==='error',{},{timeout:60000});
  await page.waitForFunction(()=>['listening','error'].includes(document.querySelector('#voice-status').dataset.state),{},{timeout:90000});
  if(await page.locator('#voice-status').getAttribute('data-state')==='error')throw Error(await page.locator('#voice-status').textContent());
- await page.screenshot({path:'docs/momo-voice-electron.png'});await page.locator('#voice-toggle').click();
+ await page.screenshot({path:'docs/momo-voice-background.png'});
+ await page.locator('#voice-reopen').click();if(!(await page.locator('#chat-dialog').isVisible()))throw Error('Unable to reopen chat');
+ await page.getByRole('button',{name:'关闭聊天',exact:true}).click();await page.locator('#voice-stop').click();
  const released=await page.evaluate(()=>window.syntheticTracks.every(t=>t.readyState==='ended'));
  console.log(JSON.stringify({status:await page.locator('#voice-status').textContent(),messages:await page.locator('.message').allTextContents(),released,errors},null,2));
  if(errors.length||!released)throw Error('Renderer or cleanup failed');

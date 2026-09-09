@@ -41,7 +41,7 @@ async function confirm(){
 }
 function openDialog(id){if(!$(id).open)$(id).showModal()}
 function addMessage(role,text,error=false){const e=document.createElement('div');e.className=`message ${role}${error?' error':''}`;e.textContent=text;$('#messages').append(e);$('#messages').scrollTop=$('#messages').scrollHeight;return e}
-function openChat(){if(!history.length){const text='嗨，我是 Momo。今天想和我聊些什么？';addMessage('assistant',text);history.push({role:'assistant',content:text})}openDialog('#chat-dialog');$('#chat-input').placeholder=['今天过得怎么样？','今天有什么让你开心的小事？','有什么事情想让我陪你一起面对？'][choice];$('#chat-input').focus()}
+function openChat(){if(!history.length){const text='嗨，我是 Momo。今天想和我聊些什么？';addMessage('assistant',text);history.push({role:'assistant',content:text})}openDialog('#chat-dialog');$('#chat-input').placeholder=['今天过得怎么样？','今天有什么让你开心的小事？','有什么事情想让我陪你一起面对？'][choice]||'今天过得怎么样？';$('#chat-input').focus()}
 function renderDiary(){const list=$('#diary-list');list.replaceChildren();if(!state.diary.length){const p=document.createElement('p');p.className='empty-diary';p.textContent='🌱\n我们的故事，才刚刚开始。\n给 Momo 一次摸摸，写下第一个小瞬间。';p.style.whiteSpace='pre-line';list.append(p);return}for(const entry of [...state.diary].reverse()){const item=document.createElement('div');item.className='diary-entry';const time=document.createElement('time');time.textContent=new Date(entry.at).toLocaleString('zh-CN',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});const p=document.createElement('p');p.textContent=entry.text;item.append(time,p);list.append(item)}}
 for(const [i,m]of MODES.entries()){const b=document.createElement('button');b.className='key';b.setAttribute('aria-label',`${i+1} ${m.name}`);b.innerHTML=`<span class="key-number">${String(i+1).padStart(2,'0')}</span><span class="key-icon">${m.icon}</span><strong>${m.name}</strong><small>${m.sub}</small>`;b.onclick=()=>select(i);$('#keys').append(b)}
 $('#previous').onclick=()=>rotate(-1);$('#next').onclick=()=>rotate(1);$('#confirm').onclick=confirm;$('#knob').onclick=confirm;
@@ -63,6 +63,7 @@ const voice=new VoiceChat({createAudio:createBrowserAudio,
   onState:(status,text)=>{
     const active=voice.active;$('#voice-toggle').setAttribute('aria-pressed',String(active));$('#voice-toggle').setAttribute('aria-label',active?'关闭麦克风':'打开麦克风');$('#voice-toggle').title=active?'关闭麦克风':'打开麦克风';
     $('#voice-status').textContent=text;$('#voice-status').dataset.state=status;
+    $('#voice-panel').hidden=!active&&status!=='error';$('#voice-panel-status').textContent=text;$('#voice-panel').dataset.state=status;$('#voice-stop').textContent=active?'关闭麦克风':'关闭提示';
     $('#chat-input').disabled=active&&status!=='listening';$('#send-chat').disabled=chatBusy||(active&&status!=='listening');
     $('#chat-badge').textContent=active?'语音聊天 · VTuber':ai?'AI 对话 · '+ai.model:'本地陪伴 · 预设回复';
     if(status==='listening')voiceReply=null;
@@ -71,8 +72,9 @@ const voice=new VoiceChat({createAudio:createBrowserAudio,
   onReply:text=>{if(!voiceReply)voiceReply=addMessage('assistant','');voiceReply.textContent=text;$('#messages').scrollTop=$('#messages').scrollHeight;speak(text)},
 });
 $('#voice-toggle').onclick=()=>{if(voice.active){voice.stop();return}if(chatBusy){toast('请等当前文字回复结束，再打开麦克风');return}music.stop();render();voiceReply=null;void voice.start()};
-$('#chat-dialog').addEventListener('cancel',()=>voice.stop());
-$('#chat-dialog').addEventListener('close',()=>{voice.stop();voiceReply=null});
+// The dialog only controls visibility; the voice session belongs to the app.
+$('#voice-reopen').onclick=openChat;
+$('#voice-stop').onclick=()=>voice.stop();
 window.addEventListener('beforeunload',()=>voice.stop());
 $('#chat-form').onsubmit=async e=>{
   e.preventDefault();const input=$('#chat-input').value.trim();if(!input||chatBusy)return;if(voice.active){if(await voice.submitText(input))$('#chat-input').value='';return}chatBusy=true;$('#send-chat').disabled=true;$('#chat-input').value='';addMessage('user',input);history.push({role:'user',content:input});history=history.slice(-24);const pending=addMessage('assistant','Momo 正在想……');
@@ -85,7 +87,7 @@ $('#volume').oninput=e=>music.volume=Number(e.target.value)/100;$('#reverse-knob
 $('#always-top').disabled=!window.momoDesktop;$('#always-top').onchange=async e=>{try{await window.momoDesktop.setAlwaysOnTop(e.target.checked)}catch{e.target.checked=false;toast('暂时无法设置窗口置顶')}};
 $('#ai-form').onsubmit=e=>{e.preventDefault();try{const endpoint=new URL($('#ai-endpoint').value.trim());if(endpoint.protocol!=='https:'||endpoint.username||endpoint.password||endpoint.search||endpoint.hash)throw Error('请填写不含账号、查询参数的 HTTPS 完整接口地址');const model=$('#ai-model').value.trim(),key=$('#ai-key').value.trim();if(!model||!key)throw Error('请填写模型名称和 API 密钥');ai={endpoint:endpoint.href,model,key};$('#chat-badge').textContent='AI 对话 · '+model;$('#ai-status').textContent='已启用。下一条消息将发往此服务；关闭应用后密钥自动清除。';$('#ai-key').value='';toast('AI 配置已启用，发送消息后会验证连接')}catch(err){$('#ai-status').textContent=err.message}};
 $('#ai-clear').onclick=()=>{ai=null;$('#ai-key').value='';$('#ai-status').textContent='已恢复本地预设回复。';$('#chat-badge').textContent='本地陪伴 · 预设回复'};
-$('#clear-data').onclick=()=>{if(!window.confirm('确定清除 Momo 的全部养成状态和陪伴日记吗？此操作无法恢复。'))return;state=initialState();history=[];$('#messages').replaceChildren();cancelGame();music.stop();choice=0;save();render();speak('你好呀。我们的故事，从这里重新开始。');$('#settings-dialog').close();toast('已清除本地宠物与日记数据')};
+$('#clear-data').onclick=()=>{if(!window.confirm('确定清除 Momo 的全部养成状态和陪伴日记吗？此操作无法恢复。'))return;state=initialState();history=[];voiceReply=null;$('#messages').replaceChildren();cancelGame();music.stop();choice=0;save();render();speak('你好呀。我们的故事，从这里重新开始。');$('#settings-dialog').close();toast('已清除本地宠物与日记数据')};
 setInterval(()=>{state=ageState(state);save();render()},60000);window.addEventListener('beforeunload',save);
 $('#date-label').textContent=`${new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'})} · A LITTLE COMPANY, EVERY DAY`;
 save();render();
