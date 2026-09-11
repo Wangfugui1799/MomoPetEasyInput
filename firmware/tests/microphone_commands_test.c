@@ -31,6 +31,13 @@ int main(void){
  command("mic_start",14,7000);command("mic_stop",14,7001);assert(!capturing&&!microphone_active());
  for(int i=0;i<600;i++)microphone_command_byte(&buffer,'x',reply,sizeof(reply),8000);
  assert(!feed("\n",8000));command("mic_start",15,8001);assert(capturing);command("mic_stop",15,8002);
+ const char *wifi="{\"protocol\":\"momo-easyinput/1\",\"type\":\"mic_start\",\"id\":7,\"stream\":42}\n";
+ for(const char *p=wifi;*p;p++)microphone_command_byte_from(&buffer,*p,reply,sizeof(reply),9000,MIC_WIFI);
+ assert(capturing&&microphone_owner()==MIC_WIFI);
+ command("mic_ping",42,9001);assert(strstr(reply,"busy")&&capturing);
+ command("mic_stop",42,9002);assert(strstr(reply,"busy")&&capturing);
+ microphone_disconnect(MIC_USB);assert(capturing);microphone_disconnect(MIC_WIFI);assert(!capturing);
+ command("mic_start",43,9100);assert(capturing&&microphone_owner()==MIC_USB);microphone_disconnect(MIC_USB);assert(!capturing);
  puts("microphone commands: capability framing, stale stream, timeout, overflow, USB failure and stop passed");
  return 0;
 }

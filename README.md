@@ -6,7 +6,7 @@
 
 一款面向 Mac 的桌面陪伴原型，使用 EasyInput 键盘与薄荷绿色的 Momo 互动。支持喂食、摸摸、训练、探索、聊天、装扮、音乐和睡觉；没有硬件时，也可以用鼠标和电脑键盘体验。
 
-**V0.5.0 · Electron · ESP32-S3 · USB Serial / BLE**
+**V0.6.0 · Electron · ESP32-S3 · USB / BLE 控制 / Wi-Fi 语音**
 
 [快速开始](#快速开始) · [八键与旋钮](#八键与旋钮) · [连接开发板](#连接开发板) · [语音安装教程](docs/VOICE-SETUP.md) · [AI-对话](#ai-对话) · [验证状态](#验证状态)
 
@@ -88,7 +88,9 @@ npm run start:voice
 
 在设置的「语音输入」中选择系统默认麦克风、具体电脑麦克风或 EasyInput 板载麦克风，选择会保存为默认。然后按 S5，转动旋钮选择「语音聊天」，短按旋钮开始。选择「文字聊天」只打开聊天框，也可随时点击输入框左侧的麦克风开关。
 
-EasyInput 板载麦克风需要 **0.5.0 固件及原生 USB Serial/JTAG 连接**，UART 桥接和 BLE 不传音频。断线或设备不可用时会停止并提示，不会偷偷切换到电脑麦克风。切换设置中的输入会停止当前语音，下次开始使用新音源。回复仍从电脑播放。
+EasyInput 板载麦克风支持两条输入路径：**0.5.0+ 固件的原生 USB Serial/JTAG**，或 **0.6.0 固件的 Wi-Fi 无线音频**。无线模式先通过 USB 绑定这台 Mac，再通过应用内 BLE 配网；详见 [无线语音安装与使用](docs/WIRELESS-VOICE-SETUP.md)。UART 桥接和 BLE 本身不传音频。断线或设备不可用时会停止并提示，不会偷偷切换到电脑麦克风。切换设置中的输入会停止当前语音，下次开始使用新音源。回复仍从电脑播放。
+
+0.6.0 已完成软件验证、固件构建、经确认的应用区烧录与哈希校验；正常启动、无线能力握手和 Momo 连接已验证。尚未完成 Wi-Fi 配网与拔掉 USB 后的真人三轮验收。详细边界见 [无线验证记录](docs/WIRELESS-VOICE-VALIDATION.md)。
 
 0.5.0 已完成电脑测试、模拟 USB 音频的真实 VAD／VTuber 三轮验证与 ESP-IDF 构建；**已完成本版应用区烧录并通过数据校验；重启运行和板载麦克风实板收音仍待验证**。详见 [键盘语音输入说明](docs/KEYBOARD-VOICE-INPUT.md)。
 
@@ -143,16 +145,16 @@ Momo 使用自己的串口事件协议，**不能直接使用普通 USB HID 键�
 ```sh
 source /path/to/esp-idf/export.sh
 idf.py --version
-idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/build-ble/sdkconfig" build
+idf.py -C firmware -B "$PWD/firmware/build-wireless" -D SDKCONFIG="$PWD/firmware/build-wireless/sdkconfig-release" build
 ```
 
 目标芯片和 Flash 容量已在 `firmware/sdkconfig.defaults` 中设置。构建产物包括：
 
 | 产物 | 作用 |
 | --- | --- |
-| `firmware/build-ble/bootloader/bootloader.bin` | 启动程序 |
-| `firmware/build-ble/partition_table/partition-table.bin` | 分区表 |
-| `firmware/build-ble/momo_easyinput.bin` | Momo 应用 |
+| `firmware/build-wireless/bootloader/bootloader.bin` | 启动程序 |
+| `firmware/build-wireless/partition_table/partition-table.bin` | 分区表 |
+| `firmware/build-wireless/momo_easyinput.bin` | Momo 应用 |
 
 ### 2. 写入并恢复正常启动
 
@@ -164,13 +166,13 @@ idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/buil
 
    ```sh
    MOMO_PORT=/dev/cu.usbmodemXXXX
-   idf.py -C firmware -B "$PWD/firmware/build-ble" -D SDKCONFIG="$PWD/firmware/build-ble/sdkconfig" -p "$MOMO_PORT" flash
+   idf.py -C firmware -B "$PWD/firmware/build-wireless" -D SDKCONFIG="$PWD/firmware/build-wireless/sdkconfig-release" -p "$MOMO_PORT" flash
    ```
 
 4. 写入完成后，使用板上电源开关**关机，再开机**，恢复正常运行；不要再次按 BOOT。
 5. 继续确认应用握手。写入哈希校验成功，仅代表数据写入正确，不等于应用已经启动。
 
-本固件写入启动程序、分区表和应用，不要求整片擦除。具体偏移以本次构建生成的 `firmware/build-ble/flash_args` 为准。
+上面的完整写入命令写入启动程序、分区表和应用，不要求整片擦除。具体偏移以本次构建生成的 `firmware/build-wireless/flash_args` 为准。已有兼容分区的设备升级时，优先核验后仅更新应用区；不要未经确认直接执行完整写入命令。0.6.0 使用体积优化配置，不要复用旧的调试 sdkconfig，否则可能超过原有 1 MB 应用分区。
 
 ### 3. 在 Momo 中连接
 

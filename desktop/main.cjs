@@ -1,11 +1,20 @@
-const {app,BrowserWindow,ipcMain,dialog,Menu}=require('electron');
-const path=require('node:path');let server,win;
+const {app,BrowserWindow,ipcMain,dialog,Menu,safeStorage}=require('electron');
+const path=require('node:path');let server,win,wireless;
+const {WirelessManager}=require('./wireless-manager.cjs');
 const {sameOrigin,allowSerial}=require('./serial-policy.cjs');
 const {allowMicrophone}=require('./media-policy.cjs');
 app.setName('Momo');
 if(!app.requestSingleInstanceLock()){app.quit();process.exit(0)}
 app.on('second-instance',()=>{if(win){if(win.isMinimized())win.restore();win.focus()}});
 async function createWindow(){
+  if(!wireless){
+    wireless=new WirelessManager({directory:app.getPath('userData'),safeStorage,send:(kind,value)=>{if(win&&!win.isDestroyed())win.webContents.send('momo:wireless-event',kind,value)}});
+    await wireless.init();
+    ipcMain.handle('momo:wireless',(event,action,value)=>{
+      if(event.sender!==win?.webContents||event.senderFrame!==win.webContents.mainFrame||!sameOrigin(event.senderFrame.url,server.url))throw Error('Invalid wireless origin');
+      return wireless.action(action,value);
+    });
+  }
   win=new BrowserWindow({width:1280,height:950,minWidth:850,minHeight:720,title:'Momo · 你的桌面小伙伴',backgroundColor:'#f8f9f4',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false,autoplayPolicy:'no-user-gesture-required'}});
   const ses=win.webContents.session,origin=server.url;
   ses.setPermissionCheckHandler((contents,permission,requestingOrigin,details)=>allowSerial(contents,permission,requestingOrigin,win.webContents.id,origin)||allowMicrophone(contents,permission,requestingOrigin,win.webContents.id,origin,details));
@@ -26,9 +35,20 @@ async function createWindow(){
     choosingBluetooth=true;clearTimeout(bluetoothTimer);bluetoothTimer=null;
     dialog.showMessageBox(win,{title:'连接 Momo 蓝牙',message:'选择你的 EasyInput',buttons:[...devices.map(d=>d.deviceName||d.deviceId),'取消'],cancelId:devices.length,defaultId:devices.length,noLink:true}).then(({response})=>callback(devices[response]?.deviceId||'')).catch(()=>callback('')).finally(()=>{choosingBluetooth=false});
   });
-  win.on('closed',()=>clearTimeout(bluetoothTimer));
+  win.on('closed',()=>{clearTimeout(bluetoothTimer);void wireless?.receiver.stop()});
+  win.webContents.on('render-process-gone',()=>void wireless?.receiver.stop());
+  win.webContents.on('did-start-navigation',(_event,_url,inPlace,isMainFrame)=>{if(isMainFrame&&!inPlace)void wireless?.receiver.stop()});
   win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',(e,url)=>{if(!url.startsWith(origin+'/'))e.preventDefault()});
   await win.loadURL(origin);
 }
-app.whenReady().then(async()=>{const {startServer}=await import('../server.mjs');try{server=await startServer({port:4784})}catch{dialog.showErrorBox('Momo 暂时无法启动','本机端口 4784 已被占用。请关闭其他 Momo 实例后重试。');app.quit();return}ipcMain.handle('momo:always-top',(e,value)=>{if(e.sender!==win.webContents||typeof value!=='boolean')throw Error('Invalid request');win.setAlwaysOnTop(value);return value});Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'Momo',submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'quit'}]},{label:'编辑',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]},{label:'窗口',submenu:[{role:'minimize'},{role:'zoom'}]}]));await createWindow();app.on('activate',()=>{if(!BrowserWindow.getAllWindows().length)createWindow()})});
+app.whenReady().then(async()=>{
+  const {startServer}=await import('../server.mjs');
+  // Development/native UI tests can coexist with the user's normal desktop.
+  const override=Number(process.env.MOMO_DESKTOP_PORT);
+  const port=Number.isInteger(override)&&override>=1024&&override<=65535?override:4784;
+  try{server=await startServer({port})}catch{dialog.showErrorBox('Momo 暂时无法启动',`本机端口 ${port} 已被占用。请关闭其他 Momo 实例后重试。`);app.quit();return}
+  ipcMain.handle('momo:always-top',(e,value)=>{if(e.sender!==win.webContents||typeof value!=='boolean')throw Error('Invalid request');win.setAlwaysOnTop(value);return value});
+  Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'Momo',submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'quit'}]},{label:'编辑',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]},{label:'窗口',submenu:[{role:'minimize'},{role:'zoom'}]}]));
+  await createWindow();app.on('activate',()=>{if(!BrowserWindow.getAllWindows().length)createWindow()});
+});
 app.on('window-all-closed',()=>app.quit());app.on('before-quit',()=>server?.server.close());

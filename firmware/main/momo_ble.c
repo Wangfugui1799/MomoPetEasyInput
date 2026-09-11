@@ -7,9 +7,11 @@
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
 #include "momo_ble.h"
+#include "wireless.h"
 // UUID bytes are little endian, matching the browser's canonical UUID strings.
 static const ble_uuid128_t service=BLE_UUID128_INIT(0x01,0,0,0,0,0,0,0,0,0,0,0,0,0,0x4d,0x4d);
 static const ble_uuid128_t event_uuid=BLE_UUID128_INIT(0x02,0,0,0,0,0,0,0,0,0,0,0,0,0,0x4d,0x4d);
+static const ble_uuid128_t config_uuid=BLE_UUID128_INIT(0x03,0,0,0,0,0,0,0,0,0,0,0,0,0,0x4d,0x4d);
 static uint16_t value_handle;
 static atomic_uint connection=BLE_HS_CONN_HANDLE_NONE;
 static atomic_bool subscribed;
@@ -18,15 +20,22 @@ static int access_event(uint16_t c,uint16_t a,struct ble_gatt_access_ctxt *ctx,v
  (void)c;(void)a;(void)arg;const uint8_t hello[]={1,0,0};
  return os_mbuf_append(ctx->om,hello,sizeof hello)==0?0:BLE_ATT_ERR_INSUFFICIENT_RES;
 }
+static int access_config(uint16_t c,uint16_t a,struct ble_gatt_access_ctxt *ctx,void *arg){
+ (void)c;(void)a;(void)arg;
+ if(ctx->op==BLE_GATT_ACCESS_OP_READ_CHR){uint8_t status[20];wireless_status(status);return os_mbuf_append(ctx->om,status,sizeof(status))==0?0:BLE_ATT_ERR_INSUFFICIENT_RES;}
+ if(ctx->op==BLE_GATT_ACCESS_OP_WRITE_CHR){uint8_t data[20];uint16_t length=OS_MBUF_PKTLEN(ctx->om);if(length>sizeof(data)||os_mbuf_copydata(ctx->om,0,length,data))return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;return wireless_provision_write(data,length)?0:BLE_ATT_ERR_UNLIKELY;}
+ return BLE_ATT_ERR_UNLIKELY;
+}
 static const struct ble_gatt_svc_def services[]={
  {.type=BLE_GATT_SVC_TYPE_PRIMARY,.uuid=&service.u,.characteristics=(struct ble_gatt_chr_def[]){
- {.uuid=&event_uuid.u,.access_cb=access_event,.flags=BLE_GATT_CHR_F_READ|BLE_GATT_CHR_F_NOTIFY,.val_handle=&value_handle},{0}}},{0}};
+ {.uuid=&event_uuid.u,.access_cb=access_event,.flags=BLE_GATT_CHR_F_READ|BLE_GATT_CHR_F_NOTIFY,.val_handle=&value_handle},
+ {.uuid=&config_uuid.u,.access_cb=access_config,.flags=BLE_GATT_CHR_F_READ|BLE_GATT_CHR_F_WRITE},{0}}},{0}};
 static void advertise(void);
 static int gap(struct ble_gap_event *e,void *arg){
  (void)arg;
  switch(e->type){
  case BLE_GAP_EVENT_CONNECT:if(e->connect.status==0)atomic_store(&connection,e->connect.conn_handle);else advertise();break;
- case BLE_GAP_EVENT_DISCONNECT:atomic_store(&subscribed,false);atomic_store(&connection,BLE_HS_CONN_HANDLE_NONE);advertise();break;
+ case BLE_GAP_EVENT_DISCONNECT:wireless_provision_reset();atomic_store(&subscribed,false);atomic_store(&connection,BLE_HS_CONN_HANDLE_NONE);advertise();break;
  case BLE_GAP_EVENT_SUBSCRIBE:if(e->subscribe.attr_handle==value_handle)atomic_store(&subscribed,e->subscribe.cur_notify);break;
  case BLE_GAP_EVENT_ADV_COMPLETE:advertise();break;
  }return 0;

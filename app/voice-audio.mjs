@@ -14,7 +14,7 @@ export function createBrowserAudio({onSpeech,onLimit,onError,input='default',con
   return {
     async init(){
       await unlocked;check();const MicVAD=await loadVAD();check();
-      if(input==='easyinput'){
+      if(input==='easyinput'||input==='easyinput-wifi'){
         try{vad=await createKeyboardVAD(connection,{onSpeech,onLimit,onError})}catch(e){e.name='AudioInputError';throw e}
         if(disposed)vad.destroy();return;
       }

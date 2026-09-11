@@ -1,4 +1,4 @@
-// Bounded native-USB PCM transport. A new lease/sequence is used for every listen.
+// Bounded USB/Wi-Fi PCM transport. A new lease/sequence is used for every listen.
 let nextStream=Math.floor(Math.random()*1000000000)+1;
 export class KeyboardMicrophone {
   constructor(connection,onFrame,onError){Object.assign(this,{connection,onFrame,onError});this.stream=0;this.generation=0;this.unsubscribe=connection.subscribeMic(e=>this.receive(e))}
@@ -19,7 +19,7 @@ export class KeyboardMicrophone {
     if(e.stream!==this.stream)return;
     if(e.type==='mic_state'&&!e.ok){this.fail('键盘麦克风已停止：'+e.error);return}
     if(e.type!=='mic_audio')return;
-    if(e.seq!==this.seq){this.fail('键盘音频丢帧，请检查 USB 连接后重试。');return}
+    if(e.seq!==this.seq){this.fail('键盘音频丢帧，请检查连接后重试。');return}
     this.seq=(this.seq+1)>>>0;this.lastFrame=Date.now();
     try{const bytes=Uint8Array.from(atob(e.pcm),c=>c.charCodeAt(0));if(bytes.length!==256)throw Error();const view=new DataView(bytes.buffer),frame=new Float32Array(128);for(let i=0;i<128;i++)frame[i]=view.getInt16(i*2,true)/32768;this.onFrame(frame)}
     catch{this.fail('键盘音频格式错误，请升级固件后重试。')}

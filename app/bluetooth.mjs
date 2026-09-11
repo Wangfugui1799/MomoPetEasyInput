@@ -26,7 +26,7 @@ export class BluetoothConnection {
    this.timer=setTimeout(()=>{if(epoch===this.epoch)this.disconnect('蓝牙连接超时，请重新连接')},15000);
    const server=await device.gatt.connect();
    if(epoch!==this.epoch){device.gatt.disconnect();return}
-   const service=await server.getPrimaryService(BLE_SERVICE);
+   const service=await server.getPrimaryService(BLE_SERVICE);this.service=service;
    const characteristic=await service.getCharacteristic(BLE_EVENT);
    if(epoch!==this.epoch)return;
    this.characteristic=characteristic;
@@ -48,6 +48,6 @@ export class BluetoothConnection {
   ++this.epoch;clearTimeout(this.timer);clearInterval(this.watch);
   this.characteristic?.removeEventListener('characteristicvaluechanged',this.notify);
   this.device?.removeEventListener('gattserverdisconnected',this.lost);
-  this.device?.gatt.disconnect();this.device=null;this.characteristic=null;this.port=null;this.verified=false;this.busy=false;this.onStatus('disconnected',message);
+  this.device?.gatt.disconnect();this.device=null;this.service=null;this.characteristic=null;this.port=null;this.verified=false;this.busy=false;this.onStatus('disconnected',message);
  }
 }

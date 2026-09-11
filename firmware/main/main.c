@@ -14,6 +14,7 @@
 #include "input_sound.h"
 #include "sound_commands.h"
 #include "microphone.h"
+#include "wireless.h"
 
 // EasyInput V2.0 / PCB AI Keyboard V2.1. These are physical board pins.
 static const gpio_num_t KEY_PINS[9]={2,47,38,41,1,6,7,48,18};
@@ -53,22 +54,40 @@ void app_main(void){
   ESP_ERROR_CHECK(uart_param_config(UART_NUM_0,&uart));ESP_ERROR_CHECK(uart_set_pin(UART_NUM_0,43,44,UART_PIN_NO_CHANGE,UART_PIN_NO_CHANGE));ESP_ERROR_CHECK(uart_driver_install(UART_NUM_0,256,2048,0,NULL,0));
   input_sound_init();
   momo_ble_init();
+  wireless_init();
   events=xQueueCreate(32,sizeof(input_event));configASSERT(events);
   BaseType_t created=xTaskCreate(sample_inputs,"momo_inputs",3072,NULL,5,NULL);configASSERT(created==pdPASS);
   uint32_t last_battery=millis()-10000;
-  uint32_t last_hello=millis()-2000;static char line[512];static command_buffer usb_commands={0},uart_commands={0},mic_commands={0};
+  uint32_t last_hello=millis()-2000,mic_connection=0;static char line[512],wifi_line[512];static command_buffer usb_commands={0},uart_commands={0},mic_commands={0},wireless_commands={0},wifi_commands={0};
   for(;;){
-    uint32_t now=millis();if((uint32_t)(now-last_hello)>=2000){last_hello=now;momo_ble_send(0,0);portENTER_CRITICAL(&dropped_lock);uint32_t dropped=dropped_events;portEXIT_CRITICAL(&dropped_lock);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.5.0\",\"sound\":true,\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);uart_write_bytes(UART_NUM_0,line,strlen(line));
+    uint32_t now=millis();
+    if(microphone_owner()==MIC_WIFI&&mic_connection!=wireless_connection())microphone_disconnect(MIC_WIFI);
+    if((uint32_t)(now-last_hello)>=2000){last_hello=now;momo_ble_send(0,0);portENTER_CRITICAL(&dropped_lock);uint32_t dropped=dropped_events;portEXIT_CRITICAL(&dropped_lock);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.6.0\",\"sound\":true,\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);uart_write_bytes(UART_NUM_0,line,strlen(line));
       // Advertise microphone only on the native USB port.
-      snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.5.0\",\"sound\":true,\"mic\":\"pcm16-usb-v1\",\"dropped\":%" PRIu32 "}\n",PROTOCOL,dropped);
-      usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));}
+      snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.6.0\",\"sound\":true,\"mic\":\"pcm16-usb-v1\",\"wireless\":true,\"device\":\"%s\",\"dropped\":%" PRIu32 "}\n",PROTOCOL,wireless_device(),dropped);
+      usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));
+      snprintf(line,sizeof(line),"{\"protocol\":\"%s\",\"type\":\"hello\",\"board\":\"easyinput-v2\",\"firmware\":\"0.6.0\",\"mic\":\"pcm16-wifi-v1\",\"device\":\"%s\"}\n",PROTOCOL,wireless_device());
+      wireless_send(line,wireless_connection());}
     if((uint32_t)(millis()-last_battery)>=10000){last_battery=millis();int percent=battery_percent();momo_ble_send(5,percent<0?255:percent);snprintf(line,sizeof(line),"\n{\"protocol\":\"%s\",\"type\":\"battery\",\"percent\":%d}\n",PROTOCOL,percent);write_line(line);}
     char rx[64];int count=usb_serial_jtag_read_bytes(rx,sizeof(rx),0);
     for(int i=0;i<count;i++){
       if(sound_command_byte(&usb_commands,rx[i],line,sizeof(line)))usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));
       if(microphone_command_byte(&mic_commands,rx[i],line,sizeof(line),millis()))usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));
+      if(wireless_usb_byte(&wireless_commands,rx[i],line,sizeof(line)))usb_serial_jtag_write_bytes(line,strlen(line),pdMS_TO_TICKS(5));
     }
-    for(int i=0;i<4&&microphone_poll(line,sizeof(line),millis());i++){size_t len=strlen(line);if(usb_serial_jtag_write_bytes(line,len,pdMS_TO_TICKS(5))!=(int)len){microphone_transport_failed();break;}}
+    uint32_t source_connection;
+    for(int n=0;n<4&&wireless_next_command(wifi_line,sizeof(wifi_line),&source_connection);n++){
+      memset(&wifi_commands,0,sizeof(wifi_commands));
+      for(const char *p=wifi_line;*p;p++)if(microphone_command_byte_from(&wifi_commands,*p,line,sizeof(line),millis(),MIC_WIFI)){
+        if(microphone_owner()==MIC_WIFI)mic_connection=source_connection;
+        if(!wireless_send(line,source_connection))microphone_disconnect(MIC_WIFI);
+      }
+    }
+    for(int i=0;i<4;i++){
+      mic_transport owner=microphone_owner();if(!microphone_poll(line,sizeof(line),millis()))break;
+      if(owner==MIC_WIFI){if(!wireless_send(line,mic_connection)){microphone_disconnect(MIC_WIFI);break;}}
+      else {size_t len=strlen(line);if(usb_serial_jtag_write_bytes(line,len,pdMS_TO_TICKS(5))!=(int)len){microphone_transport_failed();break;}}
+    }
     count=uart_read_bytes(UART_NUM_0,rx,sizeof(rx),0);
     for(int i=0;i<count;i++)if(sound_command_byte(&uart_commands,rx[i],line,sizeof(line)))uart_write_bytes(UART_NUM_0,line,strlen(line));
     input_event e;if(xQueueReceive(events,&e,pdMS_TO_TICKS(microphone_active()?1:5))==pdTRUE){

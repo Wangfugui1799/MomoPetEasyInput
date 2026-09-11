@@ -7,7 +7,7 @@ export class VoiceInputSettings {
     refresh.onclick=()=>this.update(true);media?.addEventListener('devicechange',()=>void this.update(false));void this.update(false);
   }
   render(){
-    const options=[['default','电脑 · 系统默认麦克风'],['easyinput','EasyInput · 板载麦克风（USB）'],...this.devices.filter(d=>d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications').map((d,i)=>[d.deviceId,d.label||`电脑麦克风 ${i+1}`])];
+    const options=[['default','电脑 · 系统默认麦克风'],['easyinput','EasyInput · 板载麦克风（USB）'],['easyinput-wifi','EasyInput · 板载麦克风（Wi-Fi）'],...this.devices.filter(d=>d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications').map((d,i)=>[d.deviceId,d.label||`电脑麦克风 ${i+1}`])];
     if(!options.some(([id])=>id===this.value))options.push([this.value,'已保存的麦克风（当前不可用）']);
     this.select.replaceChildren(...options.map(([id,label])=>new Option(label,id)));this.select.value=this.value;
   }

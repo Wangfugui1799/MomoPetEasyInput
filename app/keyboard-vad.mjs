@@ -1,6 +1,6 @@
 import {KeyboardMicrophone} from './keyboard-microphone.mjs';
 // Adapter for the public FrameProcessor from pinned vad-web 0.0.29 and Silero v5.
-// PCM arrives directly over USB; it must never also enter getUserMedia/VAD.
+// PCM arrives over the selected USB/Wi-Fi transport, without getUserMedia.
 export async function createKeyboardVAD(connection,{onSpeech,onLimit,onError}){
   const ort=window.ort,{FrameProcessor,Message}=window.vad;
   ort.env.wasm.wasmPaths='/voice-assets/';ort.env.wasm.numThreads=1;ort.env.wasm.proxy=false;

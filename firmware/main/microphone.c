@@ -9,12 +9,13 @@
 static mic_lease lease;
 static i2s_chan_handle_t rx;
 static bool enabled;
+static mic_transport owner;
 static volatile bool overflow;
 static const char *fault;
 static int32_t samples[MIC_SAMPLES*2];
 static size_t used;
 static bool on_overflow(i2s_chan_handle_t channel,i2s_event_data_t *event,void *ctx){(void)channel;(void)event;(void)ctx;overflow=true;return false;}
-static void stop(void){lease.active=false;if(enabled){i2s_channel_disable(rx);enabled=false;}used=0;}
+static void stop(void){lease.active=false;if(enabled){i2s_channel_disable(rx);enabled=false;}used=0;owner=MIC_NONE;}
 static bool start(void){
   if(!rx){
     i2s_chan_config_t channel=I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_1,I2S_ROLE_MASTER);
@@ -32,7 +33,7 @@ static bool start(void){
 static void state(char *reply,size_t size,int id,bool ok,const char *error){snprintf(reply,size,"\n{\"protocol\":\"momo-easyinput/1\",\"type\":\"mic_state\",\"id\":%d,\"stream\":%" PRIu32 ",\"ok\":%s,\"active\":%s,\"rate\":16000,\"error\":\"%s\"}\n",id,lease.stream,ok?"true":"false",lease.active?"true":"false",error);}
 static bool scalar_json(const char *s){bool quoted=false,escape=false;int depth=0;for(;*s;s++){if(quoted){if(escape)escape=false;else if(*s=='\\')escape=true;else if(*s=='"')quoted=false;}else if(*s=='"')quoted=true;else if(*s=='[')return false;else if(*s=='{'&&++depth>1)return false;else if(*s=='}')depth--;}return !quoted&&depth==0;}
 static bool integer(const cJSON *v){return cJSON_IsNumber(v)&&isfinite(v->valuedouble)&&v->valuedouble>=1&&v->valuedouble<=2147483647&&floor(v->valuedouble)==v->valuedouble;}
-static bool command(const char *line,char *reply,size_t size,uint32_t now){
+static bool command(const char *line,char *reply,size_t size,uint32_t now,mic_transport source){
   if(!scalar_json(line))return false;
   cJSON *root=cJSON_ParseWithOpts(line,NULL,true);if(!root)return false;
   const cJSON *p=cJSON_GetObjectItemCaseSensitive(root,"protocol"),*t=cJSON_GetObjectItemCaseSensitive(root,"type"),*id=cJSON_GetObjectItemCaseSensitive(root,"id"),*stream=cJSON_GetObjectItemCaseSensitive(root,"stream");
@@ -41,13 +42,17 @@ static bool command(const char *line,char *reply,size_t size,uint32_t now){
   if(!begin&&!ping&&!end){cJSON_Delete(root);return false;}
   if(mic_expire(&lease,now))stop();
   bool ok=false;const char *error="stale_stream";
-  if(begin){if(lease.active){error="busy";}else {lease.stream=stream->valueint;if(start()){ok=mic_begin(&lease,stream->valueint,now);fault=NULL;}else error="i2s_start";}}
+  if(lease.active&&owner!=source){state(reply,size,id->valueint,false,"busy");cJSON_Delete(root);return true;}
+  if(begin){if(lease.active){error="busy";}else {lease.stream=stream->valueint;if(start()){ok=mic_begin(&lease,stream->valueint,now);owner=source;fault=NULL;}else error="i2s_start";}}
   else if(ping)ok=mic_renew(&lease,stream->valueint,now);
   else if(mic_end(&lease,stream->valueint)){stop();fault=NULL;ok=true;}
   state(reply,size,id->valueint,ok,ok?"none":error);cJSON_Delete(root);return true;
 }
 bool microphone_command_byte(command_buffer *b,char byte,char *reply,size_t size,uint32_t now){
-  if(byte=='\n'){bool ready=false;if(!b->dropping){b->data[b->used]=0;ready=command(b->data,reply,size,now);}b->used=0;b->dropping=false;return ready;}
+  return microphone_command_byte_from(b,byte,reply,size,now,MIC_USB);
+}
+bool microphone_command_byte_from(command_buffer *b,char byte,char *reply,size_t size,uint32_t now,mic_transport source){
+  if(byte=='\n'){bool ready=false;if(!b->dropping){b->data[b->used]=0;ready=command(b->data,reply,size,now,source);}b->used=0;b->dropping=false;return ready;}
   if(!b->dropping){if(byte=='\0'||b->used>=sizeof(b->data)-1){b->dropping=true;b->used=0;}else b->data[b->used++]=byte;}return false;
 }
 bool microphone_poll(char *frame,size_t size,uint32_t now){
@@ -63,3 +68,5 @@ bool microphone_poll(char *frame,size_t size,uint32_t now){
 }
 void microphone_transport_failed(void){if(lease.active){stop();fault="usb_backpressure";}}
 bool microphone_active(void){return lease.active;}
+mic_transport microphone_owner(void){return owner;}
+void microphone_disconnect(mic_transport source){if(owner==source){stop();fault=NULL;}}

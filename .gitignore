@@ -21,3 +21,4 @@ firmware/managed_components/
 # Isolated Bluetooth verification build
 build-ble/
 firmware/build-ble/
+firmware/build-wireless/

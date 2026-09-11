@@ -1,6 +1,6 @@
 {
   "name": "momo-easyinput",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Momo · EasyInput 八键旋钮桌面宠物",
@@ -16,6 +16,8 @@
     "test:firmware:commands": "bash scripts/test-sound-commands.sh",
     "test:firmware:mic": "cc -std=c11 -Wall -Wextra -Werror firmware/main/microphone_logic.c firmware/tests/microphone_test.c -o /tmp/momo-mic-test && /tmp/momo-mic-test",
     "test:firmware:mic-commands": "bash scripts/test-microphone-commands.sh",
+    "test:firmware:wireless": "cc -std=c11 -Wall -Wextra -Werror firmware/main/wireless_logic.c firmware/tests/wireless_test.c -o /tmp/momo-wireless-test && /tmp/momo-wireless-test",
+    "test:wireless:interop": "bash scripts/test-wireless-interop.sh",
     "voice:install": "uv sync --locked --project voice-server",
     "voice:check": "uv run --locked --project voice-server voice-server/run_momo.py --check",
     "voice:server": "uv run --locked --project voice-server voice-server/run_momo.py",

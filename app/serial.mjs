@@ -24,8 +24,8 @@ export class KeyboardConnection {
       while(epoch===this.epoch){
         const {value,done}=await this.reader.read();if(done)break;
         for(const e of lines.push(decoder.decode(value,{stream:true}))){
-          if(e.type==='hello'){this.soundSupported=e.sound;this.micSupported=e.mic;this.verified=true;this.lastHello=Date.now();clearTimeout(this.timer);this.onStatus('connected',`EasyInput · ${e.firmware}`)}
-          else if(this.verified&&(e.type==='sound_state'||e.type==='mic_state')){
+          if(e.type==='hello'){this.soundSupported=e.sound;this.micSupported=e.mic;this.wirelessDevice=e.wirelessDevice;this.verified=true;this.lastHello=Date.now();clearTimeout(this.timer);this.onStatus('connected',`EasyInput · ${e.firmware}`)}
+          else if(this.verified&&['sound_state','mic_state','wireless_state'].includes(e.type)){
             const pending=this.pending.get(e.id);if(pending){clearTimeout(pending.timer);this.pending.delete(e.id);pending.resolve(e)}if(e.type==='mic_state')this.emitMic(e);
           }else if(this.verified){if(e.type==='mic_audio')this.emitMic(e);else this.onEvent(e)}
         }

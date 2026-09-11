@@ -1,4 +1,5 @@
 import {VoiceInputSettings} from './voice-input.mjs';
+import {WirelessConnection,WirelessSettings} from './wireless.mjs';
 import {VoiceChat} from './voice.mjs';
 import {createBrowserAudio} from './voice-audio.mjs';
 import {KeyboardSoundPanel} from './keyboard-sound.mjs';
@@ -61,9 +62,11 @@ $('#diary-open').onclick=()=>{renderDiary();openDialog('#diary-dialog')};$('#set
 document.querySelectorAll('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}}));
 let voiceReply=null;
 const voiceInput=new VoiceInputSettings({select:$('#voice-input'),refresh:$('#voice-input-refresh'),status:$('#voice-input-status'),onChange:()=>{if(voice.active)voice.stop();toast('语音输入已切换，重新打开麦克风即可使用')}});
+const wirelessKeyboard=new WirelessConnection();
 const voice=new VoiceChat({createAudio:options=>{
   if(voiceInput.value==='easyinput'&&(!usbKeyboard.verified||!usbKeyboard.micSupported)){const e=Error(usbKeyboard.verified?'当前固件不支持键盘麦克风，请升级至 0.5.0 或更新固件，并使用原生 USB 连接。':'请先通过原生 USB 连接 EasyInput，再开启键盘麦克风。');e.name='AudioInputError';throw e}
-  return createBrowserAudio({...options,input:voiceInput.value,connection:usbKeyboard});
+  if(voiceInput.value==='easyinput-wifi'&&!wirelessKeyboard.verified){const e=Error('请在设置中开启无线接收，并等待 EasyInput Wi-Fi 连接成功。');e.name='AudioInputError';throw e}
+  return createBrowserAudio({...options,input:voiceInput.value,connection:voiceInput.value==='easyinput-wifi'?wirelessKeyboard:usbKeyboard});
 },
   onState:(status,text)=>{
     const active=voice.active;$('#voice-toggle').setAttribute('aria-pressed',String(active));$('#voice-toggle').setAttribute('aria-label',active?'关闭麦克风':'打开麦克风');$('#voice-toggle').title=active?'关闭麦克风':'打开麦克风';
@@ -77,6 +80,7 @@ const voice=new VoiceChat({createAudio:options=>{
   onReply:text=>{if(!voiceReply)voiceReply=addMessage('assistant','');voiceReply.textContent=text;$('#messages').scrollTop=$('#messages').scrollHeight;speak(text)},
 });
 function startVoice(){if(voice.active)return;if(chatBusy){toast('请等当前文字回复结束，再打开麦克风');return}music.stop();render();voiceReply=null;void voice.start()}
+new WirelessSettings({usb:usbKeyboard,bluetooth:bluetoothKeyboard,connection:wirelessKeyboard,onChange:()=>voice.stop()});
 $('#voice-toggle').onclick=()=>voice.active?voice.stop():startVoice();
 // The dialog only controls visibility; the voice session belongs to the app.
 $('#voice-reopen').onclick=openChat;
