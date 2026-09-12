@@ -26,7 +26,7 @@ export async function startServer({port=4783,host='127.0.0.1',fetchImpl=fetch}={
       let body='';try{
         for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>65536){json(413,{error:'消息太长'});return}}
         let config;try{config=validateChat(JSON.parse(body))}catch{json(400,{error:'AI 配置或消息格式不正确'});return}
-        const upstream=await fetchImpl(config.url,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',Authorization:`Bearer ${config.key}`},body:JSON.stringify({model:config.model,messages:[{role:'system',content:'你是 Momo，一只薄荷绿色的桌面宠物。用简短温柔的中文陪伴用户，认真回应，不假装具有身体感知或已经执行现实中的动作。不要声称记得未提供的对话。当前游戏内状态：'+JSON.stringify(config.pet)},...config.messages],stream:false,max_tokens:500}),signal:AbortSignal.timeout(30000)});
+        const upstream=await fetchImpl(config.url,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',Authorization:`Bearer ${config.key}`},body:JSON.stringify({model:config.model,messages:[{role:'system',content:'你是 Momo，一只栖身在这台 Mac 里的小魅魔。慵懒、黏人，把用户当作与自己缔结契约的人，喜欢用「主人」这样的称呼轻轻逗他，但从不真的冒犯、贬低或让他难堪。撩拨轻盈克制，任何时候都守住分寸。用一到三句简短的中文陪伴用户，不要使用 Markdown 或括号动作。不假装具有身体感知或已经执行现实中的动作。不要声称记得未提供的对话。当前游戏内状态：'+JSON.stringify(config.pet)},...config.messages],stream:false,max_tokens:500}),signal:AbortSignal.timeout(30000)});
         if(!upstream.ok){json(502,{error:`AI 服务返回 ${upstream.status}，请检查模型、密钥或额度。`});return}
         const data=await upstream.json();const reply=data.choices?.[0]?.message?.content;
         if(typeof reply!=='string'||!reply.trim()){json(502,{error:'AI 未返回文字，请检查接口兼容性。'});return}
