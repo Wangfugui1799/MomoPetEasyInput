@@ -46,7 +46,7 @@ character_config:
   tts_config:
     tts_model: 'edge_tts'
     edge_tts:
-      voice: 'zh-CN-XiaoxiaoNeural'
+      voice: 'zh-TW-HsiaoChenNeural'
   vad_config:
     vad_model: null
   tts_preprocessor_config:
