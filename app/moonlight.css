@@ -104,7 +104,8 @@ html[data-theme=moonlight]{color-scheme:dark;--ink:#f3ede9;--muted:#b6adbf;--gre
 [data-theme=moonlight] #moon-chat .eyebrow,[data-theme=moonlight] #moon-chat .close-dialog{display:none}
 [data-theme=moonlight] #moon-chat h2{font-size:19px;letter-spacing:.5px;margin:0;color:#f4e8ee}
 [data-theme=moonlight] .chat-badge{background:transparent;color:#bbabc5;font-size:11px;padding:10px 0;margin:0}
-[data-theme=moonlight] #moon-chat .messages{flex:1;height:0;min-height:180px;max-height:none;margin:0 0 18px;padding:8px 2px;overflow:auto;scrollbar-width:thin;scrollbar-color:#66516f transparent}
+/* A definite flex basis keeps chat history from enlarging the shared grid row. */
+[data-theme=moonlight] #moon-chat .messages{flex:1 1 0px;height:0;min-height:180px;max-height:none;margin:0 0 18px;padding:8px 2px;overflow:auto;scrollbar-width:thin;scrollbar-color:#66516f transparent}
 [data-theme=moonlight] .message{background:#3a3044;color:#f0e7ee;border:1px solid #4b3c55;border-radius:15px;padding:12px 14px;font-size:13px;line-height:1.8;max-width:88%;margin-bottom:18px;overflow-wrap:anywhere}
 [data-theme=moonlight] .message.assistant{margin-left:35px;position:relative}
 [data-theme=moonlight] .message.assistant:before{content:'';position:absolute;width:33px;height:35px;left:-39px;top:1px;background:url('./assets/momo-moonlight.png') center/contain no-repeat}
