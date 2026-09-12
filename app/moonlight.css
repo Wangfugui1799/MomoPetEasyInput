@@ -17,8 +17,8 @@ html[data-theme=moonlight]{color-scheme:dark;--ink:#f3ede9;--muted:#b6adbf;--gre
 [data-theme=moonlight] .brand{font-size:28px;letter-spacing:0;gap:12px}
 [data-theme=moonlight] .brand-mark{background:#4e8064;color:#fff;width:45px;height:45px;font-size:37px}
 [data-theme=moonlight] .brand small{font-size:12px;letter-spacing:2px;color:#c0b6c8}
-[data-theme=moonlight] .theme-switch{margin:auto;border-color:#655468;background:#292532;min-width:245px;justify-content:space-between}
-[data-theme=moonlight] .theme-switch button{padding:10px 18px;font-size:13px;color:#d7cddf}
+[data-theme=moonlight] .theme-switch{margin:auto;border-color:#655468;background:#292532}
+[data-theme=moonlight] .theme-switch button{color:#d7cddf}
 [data-theme=moonlight] .theme-switch button[aria-pressed=true]{color:#fff0f5;background:#68495d;box-shadow:inset 0 0 0 1px #9e708d}
 [data-theme=moonlight] .topbar nav{gap:18px;flex-shrink:0}
 [data-theme=moonlight] .connection{background:#302b3b;border-color:#4b4258;color:#e4dbe7;font-size:12px}
@@ -200,8 +200,6 @@ html[data-theme=moonlight]{color-scheme:dark;--ink:#f3ede9;--muted:#b6adbf;--gre
   [data-theme=moonlight] .brand{font-size:22px;gap:8px}
   [data-theme=moonlight] .brand-mark{width:35px;height:35px;font-size:29px;border-radius:12px}
   [data-theme=moonlight] .brand small{font-size:10px;letter-spacing:1px}
-  [data-theme=moonlight] .theme-switch{min-width:0;padding:3px}
-  [data-theme=moonlight] .theme-switch button{padding:8px 10px;font-size:11px;gap:4px}
   [data-theme=moonlight] .topbar nav{gap:10px;justify-content:space-between;flex-wrap:wrap}
   [data-theme=moonlight] .connection{font-size:11px;padding:9px}
   [data-theme=moonlight] .nav-button{font-size:11px;gap:4px}
@@ -240,7 +238,6 @@ html[data-theme=moonlight]{color-scheme:dark;--ink:#f3ede9;--muted:#b6adbf;--gre
 [data-theme=moonlight] #chat-input{font-size:14px}
 [data-theme=moonlight] .moon-option-label{font-size:12px}
 [data-theme=moonlight] .key strong{font-size:14px}
-[data-theme=moonlight] .theme-switch button{font-size:14px}
 [data-theme=moonlight] .speech{font-size:14px}
 [data-theme=moonlight] .greeting h1{font-size:32px}
 @media(max-width:1049px){
@@ -248,7 +245,6 @@ html[data-theme=moonlight]{color-scheme:dark;--ink:#f3ede9;--muted:#b6adbf;--gre
   [data-theme=moonlight] #moon-chat .messages{min-height:110px}
 }
 @media(max-width:600px){
-  [data-theme=moonlight] .theme-switch button{font-size:11px}
   [data-theme=moonlight] .greeting h1{font-size:24px}
   [data-theme=moonlight] .speech{font-size:12px}
   [data-theme=moonlight] .message{font-size:13px}
