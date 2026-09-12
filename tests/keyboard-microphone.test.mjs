@@ -24,3 +24,46 @@ test('stop while starting cancels timers; restart ignores old frames; disconnect
 test('missing input defaults to system; saved device is preserved without fallback',()=>{
   assert.equal(loadVoiceInput({getItem:()=>null}),'default');assert.equal(loadVoiceInput({getItem:()=>{throw Error()}}),'default');assert.equal(loadVoiceInput({getItem:key=>key===VOICE_INPUT_KEY?'easyinput':null}),'easyinput');assert.equal(loadVoiceInput({getItem:()=> 'missing-device'}),'missing-device');
 });
+
+test('wireless disconnect reason is visible and does not restart capture',async()=>{
+  const c=fake(),errors=[],mic=new KeyboardMicrophone(c,()=>{},e=>errors.push(e));
+  await mic.start();c.emit({type:'disconnected',message:'无线开发板心跳超时'});
+  assert.deepEqual(errors,['无线开发板心跳超时']);assert.equal(mic.stream,0);
+  assert.equal(c.commands.filter(c=>c.type==='mic_start').length,1);mic.dispose();
+});
+
+test('next listen waits for a delayed stop acknowledgement instead of racing Wi-Fi',async()=>{
+  const c=fake(),errors=[],mic=new KeyboardMicrophone(c,()=>{},e=>errors.push(e));
+  const request=c.requestMic.bind(c);let confirmStop,active=0;
+  c.requestMic=(type,stream)=>{
+    if(type==='mic_start'){
+      if(active)return Promise.resolve({ok:false,active:true,stream:active,error:'busy'});
+      active=stream;return request(type,stream);
+    }
+    if(type==='mic_stop')return new Promise(resolve=>{confirmStop=()=>{active=0;resolve({ok:true,active:false,stream})}});
+    return request(type,stream);
+  };
+  try{
+    await mic.start();const first=mic.stream;
+    const stopped=mic.stop();const next=mic.start();
+    await Promise.resolve();
+    assert.equal(c.commands.filter(c=>c.type==='mic_start').length,1,'do not start while previous stop is in flight');
+    confirmStop();await stopped;await next;
+    assert.notEqual(mic.stream,first);assert.equal(active,mic.stream);assert.deepEqual(errors,[]);
+  }finally{mic.dispose();confirmStop?.()}
+});
+
+test('closing while waiting for stop never starts a later recording',async()=>{
+  const c=fake(),mic=new KeyboardMicrophone(c,()=>{},()=>{});await mic.start();
+  const request=c.requestMic.bind(c);let done;
+  c.requestMic=(type,stream)=>type==='mic_stop'?new Promise(resolve=>{done=()=>resolve({ok:true,active:false,stream})}):request(type,stream);
+  mic.stop();const next=mic.start();mic.dispose();done();await next;
+  assert.equal(c.commands.filter(c=>c.type==='mic_start').length,1);assert.equal(mic.stream,0);
+});
+
+test('stop errors remain observable and prevent a new recording',async()=>{
+  const c=fake(),mic=new KeyboardMicrophone(c,()=>{},()=>{});await mic.start();
+  c.requestMic=async(_type,stream)=>({ok:false,active:true,stream,error:'busy'});
+  await assert.rejects(mic.stop(),/暂停失败/);await assert.rejects(mic.start(),/暂停失败/);
+  assert.equal(mic.stream,0);mic.dispose();
+});

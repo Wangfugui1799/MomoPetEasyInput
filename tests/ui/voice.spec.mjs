@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-async function openChat(page){await page.goto('/');await page.keyboard.press('5');await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter')}
+async function openChat(page){await page.goto('/');await page.locator('#chat-open').click()}
 async function mockVoice(page,{permissionDenied=false}={}){
   await page.addInitScript(({permissionDenied})=>{
     window.voiceSent=[];window.voiceTracks=[];
@@ -22,6 +22,22 @@ test('microphone is left of input, default off; three turns and stop release tra
   }
   expect(await page.evaluate(()=>window.voiceSent.filter(m=>m.type==='mic-audio-end').length)).toBe(3);
   await page.locator('#chat-dialog').getByRole('button',{name:'关闭麦克风',exact:true}).click();expect(await page.evaluate(()=>window.voiceTracks.every(t=>t.stopped))).toBe(true);await expect(page.locator('#voice-toggle')).toHaveAttribute('aria-pressed','false');
+});
+test('S5 system input keeps multiple phrases and silence until the send press',async({page})=>{
+  await mockVoice(page);await page.goto('/');await page.keyboard.press('5');
+  await expect(page.locator('#voice-panel-status')).toContainText('正在录音');
+  await page.evaluate(()=>{
+    const o=window.voiceOptions;o.onFrameProcessed({},new Float32Array(8000).fill(.2));o.onSpeechEnd(new Float32Array(8000).fill(.2));
+    o.onFrameProcessed({},new Float32Array(16000));o.onVADMisfire();
+    o.onFrameProcessed({},new Float32Array(8000).fill(.3));o.onSpeechEnd(new Float32Array(8000).fill(.3));
+  });
+  expect(await page.evaluate(()=>window.voiceSent.some(m=>m.type==='mic-audio-end'))).toBe(false);
+  await page.keyboard.press('5');await expect(page.locator('#voice-panel-status')).toContainText('正在想');
+  expect(await page.evaluate(()=>window.voiceSent.filter(m=>m.type==='mic-audio-data').reduce((n,m)=>n+m.audio.length,0))).toBe(32000);
+  expect(await page.evaluate(()=>window.voiceTracks[0].enabled)).toBe(false);
+  await page.evaluate(()=>{window.voiceSocket.emit({type:'audio',audio:null});window.voiceSocket.emit({type:'backend-synth-complete'})});
+  await expect(page.locator('#voice-panel-status')).toContainText('按 S5 录下一条');expect(await page.evaluate(()=>window.voiceTracks[0].enabled)).toBe(false);
+  await page.locator('#voice-stop').click();
 });
 test('Escape keeps voice alive; text routes only to VTuber while enabled',async({page})=>{
   let chats=0;page.on('request',r=>{if(r.url().endsWith('/api/chat'))chats++});await mockVoice(page);await openChat(page);await page.locator('#voice-toggle').click();await expect(page.locator('#voice-status')).toContainText('正在听');

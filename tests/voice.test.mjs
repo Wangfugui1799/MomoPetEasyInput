@@ -9,7 +9,7 @@ function harness(overrides={}){
   const audio={listens:0,pauses:0,disposed:0,init:async()=>{},async listen(){this.listens++},async pause(){this.pauses++},dispose(){this.disposed++},play:(data,start)=>{start();return new Promise(resolve=>players.push({data,resolve}))},...overrides};
   const chat=new VoiceChat({createSocket:()=>socket,createAudio:()=>audio,onState:s=>states.push(s),onText:s=>texts.push(s),onReply:s=>replies.push(s)});
   const receive=m=>socket.onmessage({data:JSON.stringify(m)});
-  const ready=async()=>{await chat.start();receive({type:'set-model-and-conf'});receive({type:'new-history-created'});await tick()};
+  const ready=async(options)=>{await chat.start(options);receive({type:'set-model-and-conf'});receive({type:'new-history-created'});await tick()};
   return {chat,audio,sent,states,texts,replies,players,receive,ready,socket};
 }
 test('three automatic turns: ordered audio, one submission, completion before listening',async()=>{
@@ -55,4 +55,29 @@ test('Electron microphone permission rejects cameras, frames, other windows and 
   const allowed=(changes={},request=true)=>allowMicrophone(changes.owner||owner,changes.permission||'media',changes.origin||origin,1,origin,changes.details||{isMainFrame:true,mediaTypes:['audio']},request);
   assert.equal(allowed(),true);assert.equal(allowed({details:{mediaType:'audio'}},false),true);
   for(const changes of [{owner:{id:2,getURL:()=>origin+'/'}},{origin:'https://example.com'},{permission:'videoCapture'},{details:{isMainFrame:false,mediaTypes:['audio']}},{details:{isMainFrame:true,mediaTypes:['audio','video']}},{details:{isMainFrame:true,mediaTypes:[]}}])assert.equal(allowed(changes),false);
+});
+
+test('S5 sends once per press pair and waits idle after three replies',async()=>{
+  const h=harness({finishRecording:async()=>new Float32Array(16000).fill(.2)});
+  try{
+    await h.ready({manual:true});
+    for(let turn=0;turn<3;turn++){
+      if(turn)await h.chat.pressToTalk();
+      assert.equal(h.chat.state,'listening');assert.equal(h.audio.listens,turn+1);
+      await h.chat.pressToTalk();await h.chat.pressToTalk();
+      assert.equal(h.sent.filter(m=>m.type==='mic-audio-end').length,turn+1);
+      h.receive({type:'audio',audio:'reply'});h.receive({type:'backend-synth-complete'});
+      await h.chat.pressToTalk();assert.equal(h.audio.listens,turn+1);
+      h.players[turn].resolve();await tick();h.receive({type:'control',text:'conversation-chain-end'});
+      assert.equal(h.chat.state,'ready');assert.equal(h.audio.listens,turn+1);
+    }
+    assert.equal(h.sent.filter(m=>m.type==='create-new-history').length,1);
+  }finally{h.chat.stop()}
+});
+test('S5 ignores double sends, drops cancelled capture and rejects very short recordings',async()=>{
+  let finish;const h=harness({finishRecording:()=>new Promise(r=>{finish=r})});await h.ready({manual:true});
+  const send=h.chat.pressToTalk();await h.chat.pressToTalk();assert.equal(h.chat.state,'sending');
+  h.chat.stop();finish(new Float32Array(16000));await send;assert.equal(h.sent.some(m=>m.type==='mic-audio-end'),false);
+  const short=harness({finishRecording:async()=>new Float32Array(100)});
+  try{await short.ready({manual:true});await short.chat.pressToTalk();assert.equal(short.chat.state,'ready');assert.equal(short.sent.some(m=>m.type==='mic-audio-end'),false);await short.chat.pressToTalk();assert.equal(short.audio.listens,2)}finally{short.chat.stop()}
 });

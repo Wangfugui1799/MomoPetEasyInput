@@ -16,19 +16,28 @@ async function setup(page,{capable=true,source='easyinput'}={}){
   await page.route('**/voice-assets/bundle.min.js',r=>r.fulfill({contentType:'text/javascript',body:`window.vad={Message:{SpeechEnd:'end'},FrameProcessor:class{constructor(process,reset){this.reset=reset;reset()}resume(){}pause(){}async process(frame,event){window.pcmFrame=frame;window.endSpeech=()=>event({msg:'end',audio:new Float32Array(16000).fill(.2)})}},MicVAD:{new:async options=>({start:async()=>options.getStream(),pause:async()=>options.pauseStream(),destroy(){}})}};`}));
   await page.goto('/');await page.locator('#connection').click();await expect(page.locator('#connection')).toContainText('已连接');
 }
-test('S5 selects only; knob starts USB voice, other keys work, stop survives hidden chat',async({page})=>{
+test('S5 records and sends three USB messages; knob only reveals chat and other activities still work',async({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));await setup(page);
-  await page.evaluate(()=>window.keyEvent({type:'key',key:5}));await expect(page.locator('#option-name')).toHaveText('语音聊天');await expect(page.locator('#chat-dialog')).toBeHidden();expect(await page.evaluate(()=>window.micCommands.length)).toBe(0);
-  await page.evaluate(()=>window.keyEvent({type:'press'}));await expect(page.locator('#voice-status')).toContainText('正在听');expect(await page.evaluate(()=>window.gumCalls.length)).toBe(0);await expect.poll(()=>page.evaluate(()=>window.pcmFrame?.length)).toBe(512);
+  await page.evaluate(()=>window.keyEvent({type:'key',key:5}));await expect(page.locator('#voice-status')).toContainText('正在录音');await expect(page.locator('#chat-dialog')).toBeHidden();expect(await page.evaluate(()=>window.gumCalls.length)).toBe(0);
+  await page.evaluate(()=>window.keyEvent({type:'press'}));await expect(page.locator('#chat-dialog')).toBeVisible();expect(await page.evaluate(()=>window.micCommands.filter(m=>m.type==='mic_start').length)).toBe(1);
   await page.evaluate(()=>window.keyEvent({type:'key',key:1}));await expect(page.locator('#chat-dialog')).toBeHidden();await expect(page.locator('#mode-name')).toHaveText('喂食时间');await page.evaluate(()=>window.keyEvent({type:'press'}));await expect(page.locator('#hunger-value')).toHaveText('80');
-  await page.evaluate(()=>window.endSpeech());await expect(page.locator('#voice-panel-status')).toContainText('正在想');await expect.poll(()=>page.evaluate(()=>window.micCommands.at(-1).type)).toBe('mic_stop');
-  await page.evaluate(()=>{window.voiceSocket.emit({type:'audio',audio:null,display_text:{text:'我听到了'}});window.voiceSocket.emit({type:'backend-synth-complete'})});await expect(page.locator('#voice-panel-status')).toContainText('正在听');
-  expect(await page.evaluate(()=>window.micCommands.filter(m=>m.type==='mic_start').length)).toBe(2);
-  await page.evaluate(()=>{window.keyEvent({type:'key',key:5});window.keyEvent({type:'press'})});await expect(page.locator('#chat-dialog')).toBeVisible();expect(await page.evaluate(()=>window.voiceSent.filter(m=>m.type==='create-new-history').length)).toBe(1);
-  await page.evaluate(()=>{window.keyEvent({type:'key',key:8});window.keyEvent({type:'press'});window.keyEvent({type:'key',key:5});window.keyEvent({type:'rotate',delta:-1});window.keyEvent({type:'press'})});await expect(page.locator('#voice-panel')).toBeHidden();await expect.poll(()=>page.evaluate(()=>window.modelReleased)).toBe(true);expect(errors).toEqual([]);
+  for(let turn=1;turn<=3;turn++){
+    if(turn>1)await page.evaluate(()=>window.keyEvent({type:'key',key:5}));
+    await expect(page.locator('#voice-panel-status')).toContainText('正在录音');
+    await page.waitForTimeout(1100); // even silence longer than the old VAD threshold must not send
+    expect(await page.evaluate(()=>window.voiceSent.filter(m=>m.type==='mic-audio-end').length)).toBe(turn-1);
+    await page.evaluate(()=>window.keyEvent({type:'key',key:5}));await expect(page.locator('#voice-panel-status')).toContainText('正在想');
+    await page.evaluate(()=>{window.keyEvent({type:'press'});window.keyEvent({type:'key',key:5})});await expect(page.locator('#chat-dialog')).toBeVisible();
+    expect(await page.evaluate(()=>window.voiceSent.filter(m=>m.type==='mic-audio-end').length)).toBe(turn);
+    await page.evaluate(turn=>{window.voiceSocket.emit({type:'user-input-transcription',text:'留言'+turn});window.voiceSocket.emit({type:'audio',audio:null,display_text:{text:'回复'+turn}});window.voiceSocket.emit({type:'backend-synth-complete'})},turn);
+    await expect(page.locator('#voice-status')).toContainText('按 S5 录下一条');
+    expect(await page.evaluate(()=>window.micCommands.filter(m=>m.type==='mic_start').length)).toBe(turn);
+  }
+  expect(await page.evaluate(()=>window.voiceSent.filter(m=>m.type==='create-new-history').length)).toBe(1);
+  await page.locator('#voice-toggle').click();await expect(page.locator('#voice-panel')).toBeHidden();expect(await page.evaluate(()=>window.modelReleased)).toBeUndefined();expect(errors).toEqual([]);
 });
 test('settings preserve exact input across reload; missing device does not fall back',async({page})=>{
-  await setup(page,{source:'headset'});await page.locator('#settings-open').click();await expect(page.locator('#voice-input')).toHaveValue('headset');await page.locator('#voice-input').selectOption('mac-mic');await page.locator('#settings-dialog .close-dialog').click();await page.keyboard.press('5');await page.locator('#confirm').click();await expect(page.locator('#voice-status')).toContainText('正在听');expect(await page.evaluate(()=>window.gumCalls[0].audio.deviceId)).toEqual({exact:'mac-mic'});
+  await setup(page,{source:'headset'});await page.locator('#settings-open').click();await expect(page.locator('#voice-input')).toHaveValue('headset');await page.locator('#voice-input').selectOption('mac-mic');await page.locator('#settings-dialog .close-dialog').click();await page.keyboard.press('5');await page.locator('#confirm').click();await expect(page.locator('#voice-status')).toContainText('正在录音');expect(await page.evaluate(()=>window.gumCalls[0].audio.deviceId)).toEqual({exact:'mac-mic'});
   await page.keyboard.press('Escape');await page.locator('#settings-open').click();await page.locator('#voice-input').selectOption('easyinput');await expect(page.locator('#voice-panel')).toBeHidden();expect(await page.evaluate(()=>window.trackStopped)).toBe(true);
   await page.reload();await page.locator('#settings-open').click();await expect(page.locator('#voice-input')).toHaveValue('easyinput');
   await page.evaluate(()=>localStorage.setItem('momo.voice.input.v1','missing'));await page.reload();await page.keyboard.press('5');await page.locator('#confirm').click();await expect(page.locator('#voice-status')).toContainText('所选麦克风不可用');expect(await page.evaluate(()=>window.gumCalls.length)).toBe(1);expect(await page.evaluate(()=>window.gumCalls[0].audio.deviceId)).toEqual({exact:'missing'});
@@ -36,7 +45,7 @@ test('settings preserve exact input across reload; missing device does not fall 
 test('older firmware explains USB upgrade and never opens computer microphone',async({page})=>{
   await setup(page,{capable:false});await page.keyboard.press('5');await page.locator('#confirm').click();await expect(page.locator('#voice-status')).toContainText('升级');expect(await page.evaluate(()=>window.gumCalls.length)).toBe(0);expect(await page.evaluate(()=>window.micCommands.length)).toBe(0);await expect(page.locator('#chat-input')).toBeEnabled();
 });
-test('text choice opens local chat without capture; settings fit mobile',async({page})=>{
-  await setup(page);await page.evaluate(()=>{window.keyEvent({type:'key',key:5});window.keyEvent({type:'rotate',delta:1});window.keyEvent({type:'press'})});await expect(page.locator('#chat-dialog')).toBeVisible();await expect(page.locator('#voice-toggle')).toHaveAttribute('aria-pressed','false');expect(await page.evaluate(()=>window.micCommands.length)).toBe(0);
+test('text entry opens local chat without capture; settings fit mobile',async({page})=>{
+  await setup(page);await page.locator('#chat-open').click();await expect(page.locator('#chat-dialog')).toBeVisible();await expect(page.locator('#voice-toggle')).toHaveAttribute('aria-pressed','false');expect(await page.evaluate(()=>window.micCommands.length)).toBe(0);
   await page.keyboard.press('Escape');await page.locator('#settings-open').click();await page.setViewportSize({width:390,height:844});expect(await page.locator('#settings-dialog').evaluate(d=>d.scrollWidth<=d.clientWidth)).toBe(true);await page.screenshot({path:'docs/momo-voice-input-settings.png'});
 });

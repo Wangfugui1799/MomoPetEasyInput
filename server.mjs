@@ -1,6 +1,6 @@
 import http from 'node:http';import {readFile} from 'node:fs/promises';import {fileURLToPath} from 'node:url';import path from 'node:path';
 const root=fileURLToPath(new URL('./app/',import.meta.url));
-const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','bluetooth.mjs','protocol.mjs','sound.mjs','keyboard-sound.mjs','voice.mjs','voice-audio.mjs','keyboard-vad.mjs','keyboard-microphone.mjs','voice-input.mjs','wireless.mjs']);
+const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','bluetooth.mjs','protocol.mjs','sound.mjs','keyboard-sound.mjs','voice.mjs','voice-audio.mjs','manual-recording.mjs','keyboard-vad.mjs','keyboard-microphone.mjs','voice-input.mjs','wireless.mjs']);
 const voiceAssets=new Map([
   ...['bundle.min.js','vad.worklet.bundle.min.js','silero_vad_v5.onnx'].map(name=>['voice-assets/'+name,fileURLToPath(new URL('./node_modules/@ricky0123/vad-web/dist/'+name,import.meta.url))]),
   ...['ort.wasm.min.js','ort-wasm-simd-threaded.mjs','ort-wasm-simd-threaded.wasm'].map(name=>['voice-assets/'+name,fileURLToPath(new URL('./node_modules/onnxruntime-web/dist/'+name,import.meta.url))]),

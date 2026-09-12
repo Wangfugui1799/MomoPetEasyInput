@@ -24,18 +24,20 @@ class WirelessReceiver extends EventEmitter {
   }
   accept(socket){
     if(this.socket){socket.destroy();return}
-    this.socket=socket;this.buffer='';this.lastHello=Date.now();this.verified=false;
+    this.socket=socket;this.buffer='';this.lastHello=Date.now();this.verified=false;this.disconnectReason=null;
     socket.setNoDelay(true);socket.on('error',()=>{});
     socket.on('data',chunk=>this.receive(socket,chunk));
     socket.on('close',()=>{
       if(this.socket!==socket)return;this.socket=null;this.verified=false;clearInterval(this.watch);
-      this.reject('无线开发板已断开');this.emit('mic',{type:'disconnected'});this.publish({connected:false});
+      const message=this.disconnectReason||'无线开发板已断开，请检查开发板供电和 Wi-Fi 网络。';
+      this.reject(message);this.emit('mic',{type:'disconnected',message});this.publish({connected:false,error:message});
     });
     this.watch=setInterval(()=>{
-      if(Date.now()-this.lastHello>6000){socket.destroy();return}
+      if(Date.now()-this.lastHello>6000){this.disconnect('无线开发板心跳超时，请检查供电和 Wi-Fi 信号。');return}
       try{this.write({type:'wireless_ping'})}catch{socket.destroy()}
     },1500);
   }
+  disconnect(message){this.disconnectReason=message;this.socket?.destroy()}
   receive(socket,chunk){
     if(socket!==this.socket)return;
     for(const byte of chunk){
@@ -44,7 +46,7 @@ class WirelessReceiver extends EventEmitter {
       let e;try{e=JSON.parse(line)}catch{socket.destroy();return}
       if(e.protocol!==PROTOCOL){socket.destroy();return}
       if(e.type==='hello'&&e.board==='easyinput-v2'&&e.device===this.device&&e.mic==='pcm16-wifi-v1'){
-        this.lastHello=Date.now();this.verified=true;this.publish({connected:true});continue;
+        this.lastHello=Date.now();this.verified=true;this.publish({connected:true,error:null});continue;
       }
       if(!this.verified){socket.destroy();return}
       if(e.type==='mic_state'&&Number.isInteger(e.id)&&Number.isInteger(e.stream)&&e.stream>0&&e.stream<=2147483647&&typeof e.ok==='boolean'&&typeof e.active==='boolean'&&e.rate===16000&&typeof e.error==='string'&&e.error.length<=40){
@@ -57,7 +59,7 @@ class WirelessReceiver extends EventEmitter {
   }
   write(value){
     if(!this.socket||this.socket.destroyed)throw Error('无线开发板未连接');
-    if(this.socket.writableLength>8192){this.socket.destroy();throw Error('无线连接拥塞')}
+    if(this.socket.writableLength>8192){this.disconnect('无线连接拥塞');throw Error('无线连接拥塞')}
     this.socket.write(JSON.stringify({protocol:PROTOCOL,...value})+'\n');
   }
   request(type,stream){
@@ -66,7 +68,7 @@ class WirelessReceiver extends EventEmitter {
     if(this.pending.size>=8)return Promise.reject(Error('无线命令过多'));
     const id=this.nextId=this.nextId%2147483647+1;
     return new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('无线麦克风确认超时'));this.socket?.destroy()},2000);
+      const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('无线麦克风确认超时'));this.disconnect('无线麦克风确认超时，请检查 Wi-Fi 网络。')},2000);
       this.pending.set(id,{resolve,reject,timer,stream});
       try{this.write({type,id,stream})}catch(e){clearTimeout(timer);this.pending.delete(id);reject(e)}
     });

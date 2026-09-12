@@ -33,7 +33,7 @@ export async function createKeyboardVAD(connection,{onSpeech,onLimit,onError}){
   }
   return {
     async start(){if(destroyed)throw Error('Voice stopped');await processing;if(destroyed)return;++generation;partial=[];queue=[];processor.reset();processor.resume();running=true;try{await mic.start()}catch(e){e.name='AudioInputError';throw e}},
-    async pause(){running=false;++generation;queue=[];partial=[];clearTimeout(timer);mic.stop();await processing;processor.pause(()=>{})},
+    async pause(){running=false;++generation;queue=[];partial=[];clearTimeout(timer);const stopped=mic.stop();await processing;processor.pause(()=>{});try{await stopped}catch(e){e.name='AudioInputError';throw e}},
     destroy(){if(destroyed)return;destroyed=true;running=false;++generation;queue=[];partial=[];clearTimeout(timer);mic.dispose();void processing.finally(async()=>{processor.pause(()=>{});state.dispose();sr.dispose();await session.release()})},
   };
 }

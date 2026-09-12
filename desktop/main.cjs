@@ -40,6 +40,8 @@ async function createWindow(){
   win.webContents.on('did-start-navigation',(_event,_url,inPlace,isMainFrame)=>{if(isMainFrame&&!inPlace)void wireless?.receiver.stop()});
   win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',(e,url)=>{if(!url.startsWith(origin+'/'))e.preventDefault()});
   await win.loadURL(origin);
+  // Initial navigation stops the old receiver; restore only after it completes.
+  await wireless.restoreReceiver();
 }
 app.whenReady().then(async()=>{
   const {startServer}=await import('../server.mjs');

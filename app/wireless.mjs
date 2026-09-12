@@ -23,6 +23,7 @@ export class WirelessSettings {
       <button type="button" class="secondary-button" id="wireless-bind">通过 USB 绑定这台 Mac</button>
       <label for="wireless-host">Mac 局域网地址</label><select id="wireless-host"></select>
       <div class="form-actions"><button type="button" class="secondary-button" id="wireless-refresh">刷新状态</button><button type="button" class="secondary-button" id="wireless-toggle">开启无线接收</button></div>
+      <p id="wireless-auto-help">开启后会记住接收设置，下次打开 Momo 自动恢复；关闭接收会取消自动恢复。连接不会自动开启麦克风。</p>
       <form id="wireless-form"><label for="wireless-ssid">2.4 GHz Wi-Fi 名称</label><input id="wireless-ssid" autocomplete="off" maxlength="32" required>
       <label for="wireless-password">Wi-Fi 密码</label><input id="wireless-password" type="password" autocomplete="off" minlength="8" maxlength="63" required>
       <button class="primary-button" type="submit">通过蓝牙配置 Wi-Fi</button></form>
