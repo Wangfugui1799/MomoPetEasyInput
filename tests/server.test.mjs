@@ -14,3 +14,12 @@ test('voice assets are local, explicitly allowed, and carry correct MIME and CSP
     const r=await fetch(s.url);const csp=r.headers.get('content-security-policy');assert.match(csp,/ws:\/\/127\.0\.0\.1:12393/);assert.match(csp,/'wasm-unsafe-eval'/);assert.doesNotMatch(csp,/(?:https:|\*)/);
   }finally{await s.close()}
 });
+
+test('moonlight UI assets have explicit routes and correct MIME',async()=>{
+  const s=await startServer({port:0});try{
+    for(const [name,mime] of [['moonlight.css','text/css'],['ui-theme.mjs','javascript'],['assets/moonlight-room.png','image/png'],['assets/momo-moonlight.png','image/png'],['assets/momo-moonlight-sleep.png','image/png'],['assets/icons/cookie.svg','image/svg+xml']]){
+      const r=await fetch(s.url+'/'+name);assert.equal(r.status,200,name);assert.ok(r.headers.get('content-type').includes(mime));assert.ok((await r.arrayBuffer()).byteLength>0);
+    }
+    for(const name of ['assets/../package.json','assets/icons/LICENSE','assets/not-allowed.png'])assert.equal((await fetch(s.url+'/'+name)).status,404,name);
+  }finally{await s.close()}
+});

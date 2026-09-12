@@ -1,7 +1,8 @@
+import {initUITheme} from './ui-theme.mjs';
 import {VoiceInputSettings} from './voice-input.mjs';
 import {WirelessConnection,WirelessSettings} from './wireless.mjs';
 import {VoiceChat} from './voice.mjs';
-import {createBrowserAudio} from './voice-audio.mjs';
+import {VOICE_CUE_OPTIONS,createBrowserAudio,createVoiceCue,normalizeVoiceCue} from './voice-audio.mjs';
 import {KeyboardSoundPanel} from './keyboard-sound.mjs';
 import {MODES,initialState,restoreState,ageState,act,localReply,addDiary} from './core.mjs';
 import {BluetoothConnection} from './bluetooth.mjs';
@@ -22,7 +23,7 @@ function render(){
   $('#option-symbol').textContent=m.symbols[choice];$('#option-name').textContent=m.options[choice];$('#knob-indicator').style.transform=`rotate(${choice*270/Math.max(1,m.options.length-1)-135}deg)`;
   $('#confirm').replaceChildren(document.createTextNode(game?'就是现在！':m.id==='sleep'&&state.sleeping?'早安，叫醒 Momo':m.id==='music'&&music.track===choice?'停止播放':m.verb));
   const arrow=document.createElement('span');arrow.textContent='↵';$('#confirm').append(arrow);
-  $('#option-dots').replaceChildren(...m.options.map((name,i)=>{const b=document.createElement('button');b.className=i===choice?'active':'';b.setAttribute('aria-label',name);b.setAttribute('aria-pressed',String(i===choice));b.onclick=()=>{if(!game){choice=i;render()}};return b}));
+  $('#option-dots').replaceChildren(...m.options.map((name,i)=>{const b=document.createElement('button');b.className=i===choice?'active':'';b.setAttribute('aria-label',name);b.setAttribute('aria-pressed',String(i===choice));const label=document.createElement('span');label.className='moon-option-label';label.textContent=name;b.append(label);b.onclick=()=>{if(!game){choice=i;render()}};return b}));
   document.querySelectorAll('.key').forEach((b,i)=>{b.classList.toggle('active',i===mode);b.setAttribute('aria-pressed',String(i===mode))});
   for(const k of ['hunger','mood','energy','bond']){$(`#${k}-bar`).style.width=`${state[k]}%`;$(`#${k}-value`).textContent=Math.round(state[k])}
   $('.pet-room').classList.toggle('sleeping',state.sleeping);$('#mood-label').textContent=state.sleeping?'☾ 正在做一个好梦':state.hunger<25?'🍪 想吃一点小点心':state.energy<20?'☁ 有一点点困了':'✦ 今天心情晴朗';
@@ -42,7 +43,9 @@ async function confirm(){
 }
 function openDialog(id){if(!$(id).open)$(id).showModal()}
 function addMessage(role,text,error=false){const e=document.createElement('div');e.className=`message ${role}${error?' error':''}`;e.textContent=text;$('#messages').append(e);$('#messages').scrollTop=$('#messages').scrollHeight;return e}
-function openChat(){if(!history.length){const text='嗨，我是 Momo。今天想和我聊些什么？';addMessage('assistant',text);history.push({role:'assistant',content:text})}openDialog('#chat-dialog');$('#chat-input').placeholder='今天过得怎么样？';$('#chat-input').focus()}
+let uiTheme;
+function ensureChatGreeting(){if(!history.length){const text='嗨，我是 Momo。今天想和我聊些什么？';addMessage('assistant',text);history.push({role:'assistant',content:text})}}
+function openChat(){ensureChatGreeting();if(uiTheme)uiTheme.openChat();else openDialog('#chat-dialog');$('#chat-input').placeholder='今天过得怎么样？';$('#chat-input').focus()}
 function renderDiary(){const list=$('#diary-list');list.replaceChildren();if(!state.diary.length){const p=document.createElement('p');p.className='empty-diary';p.textContent='🌱\n我们的故事，才刚刚开始。\n给 Momo 一次摸摸，写下第一个小瞬间。';p.style.whiteSpace='pre-line';list.append(p);return}for(const entry of [...state.diary].reverse()){const item=document.createElement('div');item.className='diary-entry';const time=document.createElement('time');time.textContent=new Date(entry.at).toLocaleString('zh-CN',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});const p=document.createElement('p');p.textContent=entry.text;item.append(time,p);list.append(item)}}
 function selectKey(index){select(index);if(index===4)void pressS5()}
 for(const [i,m]of MODES.entries()){const b=document.createElement('button');b.className='key';b.setAttribute('aria-label',`${i+1} ${m.name}`);b.innerHTML=`<span class="key-number">${String(i+1).padStart(2,'0')}</span><span class="key-icon">${m.icon}</span><strong>${m.name}</strong><small>${m.sub}</small>`;b.onclick=()=>selectKey(i);$('#keys').append(b)}
@@ -62,12 +65,18 @@ $('#diary-open').onclick=()=>{renderDiary();openDialog('#diary-dialog')};$('#set
 $('#chat-open').onclick=()=>{select(4);openChat()};
 document.querySelectorAll('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}}));
 let voiceReply=null;
+const cueSection=document.createElement('section');cueSection.className='voice-input-settings';cueSection.setAttribute('aria-label','语音开始提示音');cueSection.innerHTML='<h3>语音提示音</h3><label for="voice-cue">开始录音时播放</label><select id="voice-cue"></select><button type="button" class="secondary-button" id="voice-cue-preview">试听提示音</button><p id="voice-cue-status" role="status">选择后会自动保存并试听，S5 与界面麦克风共用。</p>';document.querySelector('section[aria-label="键盘操作音效"]').before(cueSection);
+const voiceCueSelect=$('#voice-cue');voiceCueSelect.replaceChildren(...VOICE_CUE_OPTIONS.map(([id,label])=>new Option(label,id)));
+let savedVoiceCue;try{savedVoiceCue=localStorage.getItem('momo.voice.cue.v1')}catch{}const voiceCue={value:normalizeVoiceCue(savedVoiceCue)};voiceCueSelect.value=voiceCue.value;
+let cuePreviewContext,cuePreview;
+async function previewVoiceCue(){const button=$('#voice-cue-preview');button.disabled=true;$('#voice-cue-status').textContent='正在试听…';try{cuePreviewContext??=new AudioContext();await cuePreviewContext.resume();cuePreview?.stop();cuePreview=createVoiceCue(cuePreviewContext,voiceCue.value);await cuePreview.done;$('#voice-cue-status').textContent=`已选择「${voiceCueSelect.selectedOptions[0].textContent}」，按 S5 开始录音时使用。`}catch{$('#voice-cue-status').textContent='无法播放试听，请检查电脑输出音量。'}finally{button.disabled=false}}
+voiceCueSelect.onchange=()=>{voiceCue.value=normalizeVoiceCue(voiceCueSelect.value);try{localStorage.setItem('momo.voice.cue.v1',voiceCue.value)}catch{}void previewVoiceCue()};$('#voice-cue-preview').onclick=previewVoiceCue;
 const voiceInput=new VoiceInputSettings({select:$('#voice-input'),refresh:$('#voice-input-refresh'),status:$('#voice-input-status'),onChange:()=>{if(voice.active)voice.stop();toast('语音输入已切换，重新打开麦克风即可使用')}});
 const wirelessKeyboard=new WirelessConnection();
 const voice=new VoiceChat({createAudio:options=>{
   if(voiceInput.value==='easyinput'&&(!usbKeyboard.verified||!usbKeyboard.micSupported)){const e=Error(usbKeyboard.verified?'当前固件不支持键盘麦克风，请升级至 0.5.0 或更新固件，并使用原生 USB 连接。':'请先通过原生 USB 连接 EasyInput，再开启键盘麦克风。');e.name='AudioInputError';throw e}
   if(voiceInput.value==='easyinput-wifi'&&!wirelessKeyboard.verified){const e=Error('请在设置中开启无线接收，并等待 EasyInput Wi-Fi 连接成功。');e.name='AudioInputError';throw e}
-  return createBrowserAudio({...options,input:voiceInput.value,connection:voiceInput.value==='easyinput-wifi'?wirelessKeyboard:usbKeyboard});
+  return createBrowserAudio({...options,input:voiceInput.value,connection:voiceInput.value==='easyinput-wifi'?wirelessKeyboard:usbKeyboard,cueStyle:()=>voiceCue.value});
 },
   onState:(status,text)=>{
     const active=voice.active;$('#voice-toggle').setAttribute('aria-pressed',String(active));$('#voice-toggle').setAttribute('aria-label',active?'关闭麦克风':'打开麦克风');$('#voice-toggle').title=active?'关闭麦克风':'打开麦克风';
@@ -109,3 +118,5 @@ $('#clear-data').onclick=()=>{if(!window.confirm('确定清除 Momo 的全部养
 setInterval(()=>{state=ageState(state);save();render()},60000);window.addEventListener('beforeunload',save);
 $('#date-label').textContent=`${new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'})} · A LITTLE COMPANY, EVERY DAY`;
 save();render();
+
+uiTheme=initUITheme({onChatVisible:ensureChatGreeting,notify:toast});

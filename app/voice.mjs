@@ -17,6 +17,8 @@ export class VoiceChat {
     try{
       // Construct synchronously in the button gesture to unlock audio playback.
       s.audio=this.createAudio({manual,onSpeech:samples=>{if(this.session===s&&!s.manual)return this.submitAudio(samples)},onLimit:()=>{if(this.session===s)this.stop(s.manual?'录音达到 60 秒上限，已停止且未发送；请按 S5 分段重录。':'这一段说得太久了，请重新打开麦克风，分段说。')},onError:message=>{if(this.session===s)this.stop(message)}});
+      try{await s.audio.playStartCue?.()}catch{}
+      if(this.session!==s){s.audio.dispose();return}
       s.socket=this.createSocket(VOICE_URL);
       s.socket.onmessage=event=>{if(this.session!==s)return;try{this.receive(s,JSON.parse(event.data))}catch{this.stop('语音服务返回了无法读取的消息，请重试。')}};
       s.socket.onerror=()=>{if(this.session===s)this.stop('无法连接语音服务，请先启动本机 VTuber（端口 12393），再点击麦克风重试。')};
@@ -53,7 +55,7 @@ export class VoiceChat {
     if(!s.manual)return false;
     if(this.state==='ready'){
       this.setState('connecting','正在准备录音…');
-      try{await s.audio.listen();if(this.session!==s)return false;this.setState('listening','正在录音 · 说完再按 S5 发送；按旋钮查看对话');return true}
+      try{try{await s.audio.playStartCue?.()}catch{}if(this.session!==s)return false;await s.audio.listen();if(this.session!==s)return false;this.setState('listening','正在录音 · 说完再按 S5 发送；按旋钮查看对话');return true}
       catch(e){if(this.session===s)this.stop(e.message);return false}
     }
     if(this.state!=='listening')return false;

@@ -1,0 +1,255 @@
+/* The classic stylesheet stays intact. Only the theme switch is shared. */
+.moon-only,.moon-option-label{display:none}
+#chat-content{display:contents}
+.theme-switch{display:flex;align-items:center;gap:3px;border:1px solid var(--line);border-radius:30px;padding:4px;flex-shrink:0;-webkit-app-region:no-drag}
+.theme-switch button{background:transparent;border-radius:24px;padding:8px 14px;font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.theme-switch button[aria-pressed=true]{background:var(--mint);color:var(--ink)}
+.theme-moon{width:15px;height:15px;background:currentColor;mask:url('./assets/icons/moon.svg') center/contain no-repeat}
+.topbar{gap:18px}.topbar nav{gap:16px}
+@media(max-width:1100px){.topbar{flex-wrap:wrap;height:auto;min-height:91px;padding-top:14px;padding-bottom:14px}.topbar nav{margin-left:auto}.theme-switch{margin-left:auto}}
+@media(max-width:600px){.topbar{gap:12px}.topbar nav{width:100%;justify-content:space-between;gap:8px}.theme-switch button{padding:8px 10px}.brand small{letter-spacing:0}.theme-switch{margin-left:0}}
+
+html[data-theme=moonlight]{color-scheme:dark;--ink:#f3ede9;--muted:#b6adbf;--green:#daa6bc;--mint:#574051;--line:#494152;--cream:#211f2a;--white:#302b3b}
+[data-theme=moonlight] body{background:#211f2a;color:var(--ink);font-size:14px}
+[data-theme=moonlight] .moon-only{display:block}
+[data-theme=moonlight] .app-shell{max-width:1600px}
+[data-theme=moonlight] .topbar{height:80px;min-height:80px;padding:0 32px;border-color:#3b3445;gap:22px}
+[data-theme=moonlight] .brand{font-size:28px;letter-spacing:0;gap:12px}
+[data-theme=moonlight] .brand-mark{background:#4e8064;color:#fff;width:45px;height:45px;font-size:37px}
+[data-theme=moonlight] .brand small{font-size:12px;letter-spacing:2px;color:#c0b6c8}
+[data-theme=moonlight] .theme-switch{margin:auto;border-color:#655468;background:#292532;min-width:245px;justify-content:space-between}
+[data-theme=moonlight] .theme-switch button{padding:10px 18px;font-size:13px;color:#d7cddf}
+[data-theme=moonlight] .theme-switch button[aria-pressed=true]{color:#fff0f5;background:#68495d;box-shadow:inset 0 0 0 1px #9e708d}
+[data-theme=moonlight] .topbar nav{gap:18px;flex-shrink:0}
+[data-theme=moonlight] .connection{background:#302b3b;border-color:#4b4258;color:#e4dbe7;font-size:12px}
+[data-theme=moonlight] .connection i{background:#ddbb76}
+[data-theme=moonlight] .connection.connected i{background:#98d3ae}
+[data-theme=moonlight] .nav-divider{display:none}
+[data-theme=moonlight] .nav-button,[data-theme=moonlight] .icon-button{color:#d5cada}
+[data-theme=moonlight] .nav-button{display:flex;align-items:center;gap:7px;white-space:nowrap}
+[data-theme=moonlight] .nav-button:before,[data-theme=moonlight] #settings-open:before{content:'';display:block;width:19px;height:19px;background:currentColor;mask:var(--tool-icon) center/contain no-repeat}
+[data-theme=moonlight] #diary-open>span{display:none}
+[data-theme=moonlight] #settings-open{font-size:0}
+[data-theme=moonlight] #battery-level{color:#bfe4cc;font-size:11px}
+[data-theme=moonlight] main{padding:24px 32px 0}
+[data-theme=moonlight] .greeting{justify-content:flex-start;gap:28px;margin:0 0 22px;min-height:40px}
+[data-theme=moonlight] .greeting>div:first-of-type{display:none}
+[data-theme=moonlight] .greeting h1{font-size:30px;letter-spacing:1px;margin:0;color:#f6e5eb;font-weight:650;line-height:1.4}
+[data-theme=moonlight] .days{border-left:1px solid #655568;padding:0 0 0 28px;color:#c1b2c8;gap:0;font-size:12px}
+[data-theme=moonlight] .day-spark{display:none}
+[data-theme=moonlight] .days big{display:inline;font-size:14px;margin:0 0 0 7px;color:#c1b2c8}
+[data-theme=moonlight] .days b{color:#efbdcc;font-size:22px;margin:0 3px}
+[data-theme=moonlight] #chat-open{display:none}
+[data-theme=moonlight] .playground{grid-template-columns:minmax(0,1.6fr) minmax(340px,1fr);gap:18px;align-items:stretch}
+[data-theme=moonlight] .moon-left{border:1px solid var(--line);border-radius:18px;background:#292532;overflow:hidden;min-width:0;display:flex;flex-direction:column}
+[data-theme=moonlight] .pet-room{height:clamp(340px,calc(100vh - 600px),490px);border:0;border-radius:0 0 15px 15px;background:#373040 url('./assets/moonlight-room.png') center/cover no-repeat;box-shadow:none;flex-shrink:0;isolation:isolate}
+[data-theme=moonlight] .pet-room.sleeping{background-color:#292634}
+[data-theme=moonlight] .room-top{left:22px;right:22px;top:18px;gap:12px}
+[data-theme=moonlight] .room-label{color:#eee3ef;font-size:12px;letter-spacing:1px;text-shadow:0 1px 5px #211f2a}
+[data-theme=moonlight] .room-label i{width:19px;height:19px;border-radius:0;background:#e3d9e9;mask:url('./assets/icons/house.svg') center/contain no-repeat}
+[data-theme=moonlight] .mood-pill{background:#332c3dda;border:1px solid #817189;color:#f1e5eb;font-size:11px;padding:7px 10px}
+[data-theme=moonlight] .window-scene,[data-theme=moonlight] .plant,[data-theme=moonlight] .floating,[data-theme=moonlight] .pet-caption,[data-theme=moonlight] .pet-shadow,[data-theme=moonlight] .pet{display:none}
+[data-theme=moonlight] .pet-stage{inset:auto 0 49px;height:75%;pointer-events:none}
+[data-theme=moonlight] .pet-wrap{width:clamp(240px,25vw,355px);height:100%;max-height:345px;filter:drop-shadow(0 9px 10px #2015263d)}
+[data-theme=moonlight] .moon-pet{position:absolute;width:100%;height:100%;object-fit:contain;object-position:center bottom;inset:0;user-select:none}
+[data-theme=moonlight] .moon-pet-asleep{display:none;mask:url('./assets/momo-moonlight.png') center bottom/contain no-repeat}
+[data-theme=moonlight] .sleeping .moon-pet-awake{display:none}
+[data-theme=moonlight] .sleeping .moon-pet-asleep{display:block}
+[data-theme=moonlight] .sleep-z{color:#eee0f6;right:20px;top:50px}
+[data-theme=moonlight] .speech{bottom:13px;left:15%;right:15%;min-height:40px;padding:9px 14px;font-size:13px;background:#675469da;border:1px solid #ac8ca885;box-shadow:none;color:#fff2f5;line-height:1.6;border-radius:15px}
+[data-theme=moonlight] .speech:before{display:none}
+[data-theme=moonlight] .outfit{top:10%;font-size:49px}
+[data-theme=moonlight] .effect-burst{right:10%;top:28%;font-size:32px}
+[data-theme=moonlight] .vitals{grid-template-columns:repeat(4,minmax(0,1fr));border:0;border-radius:0;margin:0;padding:17px 20px;gap:16px;background:transparent}
+[data-theme=moonlight] .vital{position:relative;display:grid;grid-template-columns:1fr auto;gap:8px;color:#ddd0e3;font-size:11px;padding:0 0 0 0}
+[data-theme=moonlight] .vital>span{grid-column:1/-1}
+[data-theme=moonlight] .vital b{font-size:11px}
+[data-theme=moonlight] .meter{height:5px;background:#554b60;min-width:20px}
+[data-theme=moonlight] #hunger-bar{background:#ddafc0}
+[data-theme=moonlight] #mood-bar{background:#e0c17b}
+[data-theme=moonlight] #energy-bar{background:#a0cfa9}
+[data-theme=moonlight] #bond-bar{background:#c2a4d6}
+[data-theme=moonlight] .control-panel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;height:auto;min-height:136px;margin:0 12px 12px;padding:14px 16px;border-radius:16px;background:#302a3b;border:1px solid #4b3e57;align-items:center;position:relative}
+[data-theme=moonlight] .panel-label,[data-theme=moonlight] .selection,[data-theme=moonlight] .control-footnote{display:none}
+[data-theme=moonlight] .mode-heading{margin:0;gap:8px;grid-column:1}
+[data-theme=moonlight] .mode-heading>span{display:none}
+[data-theme=moonlight] .mode-heading>div{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+[data-theme=moonlight] .mode-heading small{font-size:13px;color:#eadde7;white-space:nowrap}
+[data-theme=moonlight] .mode-heading h2{font-size:12px;font-weight:400;color:#bfb0c7;margin:0}
+[data-theme=moonlight] .mode-hint{grid-column:1/-1;grid-row:3;margin:0;height:auto;font-size:11px;line-height:1.6;color:#c1b0c8}
+[data-theme=moonlight] .knob-area{grid-row:1/3;grid-column:2;margin:0;gap:6px}
+[data-theme=moonlight] .knob{width:64px;height:64px}
+[data-theme=moonlight] .knob-ticks{display:none}
+[data-theme=moonlight] .knob-face{width:58px;height:58px;background:#403548;border-color:#6d536a;box-shadow:0 3px 8px #18111e55}
+[data-theme=moonlight] .knob-face i{background:#e4b1c9;height:7px;top:4px;transform-origin:2px 25px;width:3px}
+[data-theme=moonlight] .knob-face>span{font-size:18px;margin-top:5px}
+[data-theme=moonlight] .knob-face small{font-size:8px;color:#e0cbdc;letter-spacing:0;margin:0}
+[data-theme=moonlight] .step-button{width:28px;height:28px;background:#382f42;border-color:#65506a;color:#ecdbef}
+[data-theme=moonlight] .option-dots{grid-row:2;grid-column:1;justify-content:flex-start;gap:6px;margin:0;flex-wrap:wrap}
+[data-theme=moonlight] .option-dots button{width:auto;height:auto;min-height:31px;border:1px solid #5c4864;border-radius:12px;padding:6px 9px;background:#352c40;color:#e9dae9}
+[data-theme=moonlight] .moon-option-label{display:inline;font-size:11px;line-height:1.4;white-space:nowrap}
+[data-theme=moonlight] .option-dots button.active{background:#64495e;border-color:#d9a1ba;color:#fff0f4}
+[data-theme=moonlight] .control-panel>.primary-button{grid-column:1/-1;margin:0;height:35px;font-size:12px;padding:8px 12px}
+[data-theme=moonlight] .primary-button{background:#e1aec1;color:#352639;border-radius:14px;box-shadow:none}
+[data-theme=moonlight] .primary-button:hover{background:#f0c3d4}
+[data-theme=moonlight] .primary-button span{color:#624456}
+[data-theme=moonlight] .training{grid-column:1/-1;margin:0;padding:5px 0;color:#dcd0e4}
+[data-theme=moonlight] .training p{color:#dcd0e4}
+[data-theme=moonlight] .training-track{background:#46394d}
+[data-theme=moonlight] .moon-chat{border:1px solid var(--line);border-radius:18px;background:#27232f;min-width:0;overflow:hidden;display:flex}
+[data-theme=moonlight] #moon-chat #chat-content{display:flex;flex-direction:column;width:100%;min-width:0;padding:22px;gap:0}
+[data-theme=moonlight] #moon-chat .dialog-head{padding-bottom:18px;margin:0;border-bottom:1px solid #403546;flex-shrink:0}
+[data-theme=moonlight] #moon-chat .dialog-head>div{padding-left:38px;position:relative}
+[data-theme=moonlight] #moon-chat .dialog-head>div:before{content:'';position:absolute;left:0;top:4px;width:26px;height:26px;background:#f1dce9;mask:url('./assets/icons/chat-circle.svg') center/contain no-repeat}
+[data-theme=moonlight] #moon-chat .eyebrow,[data-theme=moonlight] #moon-chat .close-dialog{display:none}
+[data-theme=moonlight] #moon-chat h2{font-size:19px;letter-spacing:.5px;margin:0;color:#f4e8ee}
+[data-theme=moonlight] .chat-badge{background:transparent;color:#bbabc5;font-size:11px;padding:10px 0;margin:0}
+[data-theme=moonlight] #moon-chat .messages{flex:1;height:0;min-height:180px;max-height:none;margin:0 0 18px;padding:8px 2px;overflow:auto;scrollbar-width:thin;scrollbar-color:#66516f transparent}
+[data-theme=moonlight] .message{background:#3a3044;color:#f0e7ee;border:1px solid #4b3c55;border-radius:15px;padding:12px 14px;font-size:13px;line-height:1.8;max-width:88%;margin-bottom:18px;overflow-wrap:anywhere}
+[data-theme=moonlight] .message.assistant{margin-left:35px;position:relative}
+[data-theme=moonlight] .message.assistant:before{content:'';position:absolute;width:33px;height:35px;left:-39px;top:1px;background:url('./assets/momo-moonlight.png') center/contain no-repeat}
+[data-theme=moonlight] .message.user{background:#755566;border-color:#866076;color:#fff0f5;margin-left:auto}
+[data-theme=moonlight] .message.error{color:#ffd3c8;border-color:#b77773}
+[data-theme=moonlight] #voice-status{background:#342c3e;border:1px solid #4b3c56;border-radius:13px;padding:10px 12px;color:#ccbdd7;font-size:11px;line-height:1.7;flex-shrink:0}
+[data-theme=moonlight] #voice-status[data-state=error]{color:#ffc2b6}
+[data-theme=moonlight] #voice-status[data-state=listening],[data-theme=moonlight] #voice-status[data-state=ready]{color:#bce7c8}
+[data-theme=moonlight] #chat-form{display:flex;gap:8px;align-items:center;margin-top:8px;flex-shrink:0}
+[data-theme=moonlight] #chat-input{background:#342b3e;border:1px solid #55405e;color:#f8ebf5;border-radius:14px;padding:13px 12px;min-width:0;flex:1;font-size:13px}
+[data-theme=moonlight] input::placeholder{color:#ac9ab7;opacity:1}
+[data-theme=moonlight] .mic-button{background:#49364f;border-color:#755577;color:#edd4e7;border-radius:50%;width:39px;flex-basis:39px;min-height:39px}
+[data-theme=moonlight] .mic-button[aria-pressed=true]{background:#a26489;border-color:#e2b4cc;color:#fff;box-shadow:0 0 0 3px #a96d9033}
+[data-theme=moonlight] #send-chat{font-size:12px;padding:12px 13px;white-space:nowrap}
+[data-theme=moonlight] .privacy-note{font-size:10px;color:#b3a2be;line-height:1.6;margin:12px 0 0}
+[data-theme=moonlight] #voice-panel{margin:0 0 15px;background:#342b3d;border-color:#574262;padding:9px 12px}
+[data-theme=moonlight] #voice-panel-status{color:#ddc8e6}
+[data-theme=moonlight] .keyboard-section{margin:20px 0 0;border:1px solid var(--line);border-radius:18px;padding:13px 14px;background:#2b2534}
+[data-theme=moonlight] .keyboard-label{margin:0 2px 12px;color:#c1b0cc;letter-spacing:.5px;font-size:9px}
+[data-theme=moonlight] .keyboard-label>span:last-child{color:#c1b0cc}
+[data-theme=moonlight] .keys{gap:10px;grid-template-columns:repeat(8,minmax(0,1fr))}
+[data-theme=moonlight] .key{height:92px;padding:12px 5px 8px;background:#312938;border:1px solid transparent;box-shadow:none;border-radius:15px;color:#eee1eb}
+[data-theme=moonlight] .key:hover{background:#49364f;transform:translateY(-2px);box-shadow:none}
+[data-theme=moonlight] .key.active{background:#63475b;border-color:#dda7c0;box-shadow:inset 0 0 0 2px #8d697b3a}
+[data-theme=moonlight] .key.active:after{display:none}
+[data-theme=moonlight] .key-icon{font-size:0;height:29px;width:29px;margin:0 0 7px;background:#e4b5c7;mask:var(--activity-icon) center/contain no-repeat;filter:none}
+[data-theme=moonlight] .key:nth-child(1) .key-icon{background:#efc497}
+[data-theme=moonlight] .key:nth-child(4) .key-icon{background:#d3c4dd}
+[data-theme=moonlight] .key:nth-child(8) .key-icon{background:#f0cd88}
+[data-theme=moonlight] .key strong{font-size:12px;letter-spacing:.5px;font-weight:500}
+[data-theme=moonlight] .key small{display:none}
+[data-theme=moonlight] .key-number{display:none}
+[data-theme=moonlight] .moon-key-number{order:3;font-size:10px;color:#c8b7d1;margin-top:6px}
+[data-theme=moonlight] footer{color:#b3a0bf;padding:16px 1px;font-size:9px}
+[data-theme=moonlight] footer>span:last-child{display:none}
+[data-theme=moonlight] .footer-flower{display:none}
+[data-theme=moonlight] .secondary-button{color:#e2cde4;border:1px solid #694e71;background:#43304b;border-radius:11px}
+[data-theme=moonlight] .icon-button:hover{background:#56415e}
+[data-theme=moonlight] dialog{background:#2b2434;border-color:#65516b;color:#f0e5ef;border-radius:20px;width:min(720px,calc(100vw - 32px));padding:26px;max-height:88vh}
+[data-theme=moonlight] dialog::backdrop{background:#100b1ccb;backdrop-filter:blur(5px)}
+[data-theme=moonlight] dialog .eyebrow{color:#c1a6cc}
+[data-theme=moonlight] dialog .dialog-head h2{font-size:24px;color:#f5e6ef}
+[data-theme=moonlight] .dialog-intro{color:#c9b6d1;font-size:13px;line-height:1.8}
+[data-theme=moonlight] .diary-entry{margin:0 0 0 8px;padding:18px 15px 18px 24px;border:0;border-left:2px solid #8d638d;background:transparent;position:relative;border-radius:0}
+[data-theme=moonlight] .diary-entry:before{content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:#dba6be;left:-5px;top:23px}
+[data-theme=moonlight] .diary-entry time{color:#c5a0cb;font-size:12px}
+[data-theme=moonlight] .diary-entry p{color:#eee0ee;font-size:14px;line-height:1.8;margin-top:8px}
+[data-theme=moonlight] .empty-diary{color:#c8b1d2;line-height:2}
+[data-theme=moonlight] #settings-dialog>hr{display:none}
+[data-theme=moonlight] .settings-nav{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 8px}
+[data-theme=moonlight] .settings-nav button{padding:9px 11px;border:1px solid #66506d;border-radius:20px;color:#e0cbe9;background:#3b2d45;font-size:12px}
+[data-theme=moonlight] .settings-group{border-bottom:1px solid #53405d;padding:24px 0;scroll-margin:20px}
+[data-theme=moonlight] .settings-group-title{color:#e6aecb;font-size:16px;margin-bottom:16px}
+[data-theme=moonlight] .settings-group>.voice-input-settings{border:0;padding:12px 0;margin:0}
+[data-theme=moonlight] .setting-row{border-color:#51405b;gap:16px}
+[data-theme=moonlight] .setting-row p,[data-theme=moonlight] .voice-input-settings p{color:#c4b0d0;font-size:12px;line-height:1.8}
+[data-theme=moonlight] .voice-input-settings h3,[data-theme=moonlight] .settings-group h3{font-size:15px}
+[data-theme=moonlight] #settings-dialog input:not([type=checkbox]):not([type=range]),[data-theme=moonlight] #settings-dialog select{background:#35283f;border:1px solid #705477;color:#f0e1f2;border-radius:10px;font-size:13px;max-width:100%;min-width:0;padding:12px}
+[data-theme=moonlight] #settings-dialog input[type=range],[data-theme=moonlight] #settings-dialog input[type=checkbox]{accent-color:#d3a0bc}
+[data-theme=moonlight] .danger-button{color:#ffbec7;border-color:#98616f;background:#512f40}
+[data-theme=moonlight] .toast{background:#503a5b;border:1px solid #b484aa;color:#fff0fa;max-width:calc(100vw - 32px)}
+[data-theme=moonlight] button:focus-visible,[data-theme=moonlight] a:focus-visible,[data-theme=moonlight] input:focus-visible,[data-theme=moonlight] select:focus-visible{outline:3px solid #edbddb;outline-offset:3px}
+
+@media(min-width:1400px){
+  [data-theme=moonlight] .control-panel{grid-template-columns:auto minmax(0,1fr) auto auto;min-height:88px;gap:8px 14px}
+  [data-theme=moonlight] .mode-heading{grid-column:1;grid-row:1}
+  [data-theme=moonlight] .mode-heading>div{display:block}
+  [data-theme=moonlight] .mode-heading h2{margin-top:6px}
+  [data-theme=moonlight] .option-dots{grid-column:2;grid-row:1}
+  [data-theme=moonlight] .knob-area{grid-column:3;grid-row:1}
+  [data-theme=moonlight] .control-panel>.primary-button{grid-column:4;grid-row:1;white-space:nowrap}
+  [data-theme=moonlight] .mode-hint{grid-row:2}
+}
+@media(max-width:1190px){
+  [data-theme=moonlight] .topbar{flex-wrap:wrap;height:auto;padding:16px 26px;gap:12px}
+  [data-theme=moonlight] .topbar nav{width:100%;justify-content:flex-end}
+  [data-theme=moonlight] .theme-switch{margin:0 0 0 auto}
+}
+@media(max-width:1049px){
+  [data-theme=moonlight] .playground{grid-template-columns:minmax(0,1fr)}
+  [data-theme=moonlight] .pet-room{height:390px}
+  [data-theme=moonlight] .pet-wrap{width:310px}
+  [data-theme=moonlight] .moon-chat{height:430px}
+  [data-theme=moonlight] .keys{grid-template-columns:repeat(4,minmax(0,1fr))}
+  [data-theme=moonlight] .greeting h1{font-size:26px}
+  [data-theme=moonlight] .greeting{gap:18px}
+  [data-theme=moonlight] .days{padding-left:18px}
+}
+@media(max-width:600px){
+  [data-theme=moonlight] main{padding:20px 16px 0}
+  [data-theme=moonlight] .topbar{padding:14px 16px;gap:15px}
+  [data-theme=moonlight] .brand{font-size:22px;gap:8px}
+  [data-theme=moonlight] .brand-mark{width:35px;height:35px;font-size:29px;border-radius:12px}
+  [data-theme=moonlight] .brand small{font-size:10px;letter-spacing:1px}
+  [data-theme=moonlight] .theme-switch{min-width:0;padding:3px}
+  [data-theme=moonlight] .theme-switch button{padding:8px 10px;font-size:11px;gap:4px}
+  [data-theme=moonlight] .topbar nav{gap:10px;justify-content:space-between;flex-wrap:wrap}
+  [data-theme=moonlight] .connection{font-size:11px;padding:9px}
+  [data-theme=moonlight] .nav-button{font-size:11px;gap:4px}
+  [data-theme=moonlight] .nav-button:before{width:16px;height:16px}
+  [data-theme=moonlight] .greeting{align-items:flex-start;flex-direction:column;gap:7px;margin-bottom:17px}
+  [data-theme=moonlight] .greeting h1{font-size:24px}
+  [data-theme=moonlight] .days{border:0;padding:0;font-size:11px}
+  [data-theme=moonlight] .days b{font-size:18px}
+  [data-theme=moonlight] .pet-room{height:335px}
+  [data-theme=moonlight] .room-top{left:13px;right:13px;top:12px;gap:5px}
+  [data-theme=moonlight] .room-label{font-size:9px;letter-spacing:0}
+  [data-theme=moonlight] .mood-pill{font-size:9px;padding:6px 8px}
+  [data-theme=moonlight] .pet-wrap{width:255px}
+  [data-theme=moonlight] .speech{left:5%;right:5%;font-size:11px}
+  [data-theme=moonlight] .vitals{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;padding:17px}
+  [data-theme=moonlight] .control-panel{padding:12px;gap:10px;margin:0 9px 9px}
+  [data-theme=moonlight] .knob-area{gap:3px}
+  [data-theme=moonlight] .step-button{width:24px;height:24px}
+  [data-theme=moonlight] .option-dots button{padding:5px 7px}
+  [data-theme=moonlight] .mode-heading>div{gap:5px}
+  [data-theme=moonlight] .mode-heading h2{font-size:11px}
+  [data-theme=moonlight] #moon-chat #chat-content{padding:17px}
+  [data-theme=moonlight] .moon-chat{height:440px}
+  [data-theme=moonlight] .keyboard-section{padding:12px 10px;margin-top:16px}
+  [data-theme=moonlight] .keyboard-label>span:first-child{display:none}
+  [data-theme=moonlight] .keys{gap:8px}
+  [data-theme=moonlight] .key{height:86px}
+  [data-theme=moonlight] .message{font-size:12px;padding:10px 12px}
+  [data-theme=moonlight] dialog{padding:20px}
+  [data-theme=moonlight] dialog .dialog-head h2{font-size:21px}
+  [data-theme=moonlight] .form-actions{flex-wrap:wrap;gap:8px}
+  [data-theme=moonlight] .form-actions button{min-width:0}
+}
+/* Legible companion text and compact desktop fit, verified at native window size. */
+[data-theme=moonlight] .message{font-size:14px}
+[data-theme=moonlight] #chat-input{font-size:14px}
+[data-theme=moonlight] .moon-option-label{font-size:12px}
+[data-theme=moonlight] .key strong{font-size:14px}
+[data-theme=moonlight] .theme-switch button{font-size:14px}
+[data-theme=moonlight] .speech{font-size:14px}
+[data-theme=moonlight] .greeting h1{font-size:32px}
+@media(max-width:1049px){
+  [data-theme=moonlight] .moon-chat{height:520px}
+  [data-theme=moonlight] #moon-chat .messages{min-height:110px}
+}
+@media(max-width:600px){
+  [data-theme=moonlight] .theme-switch button{font-size:11px}
+  [data-theme=moonlight] .greeting h1{font-size:24px}
+  [data-theme=moonlight] .speech{font-size:12px}
+  [data-theme=moonlight] .message{font-size:13px}
+  [data-theme=moonlight] .key strong{font-size:12px}
+}

@@ -6,7 +6,7 @@ const tick=()=>new Promise(r=>setTimeout(r,0));
 function harness(overrides={}){
   const sent=[],states=[],texts=[],replies=[],players=[];
   const socket={readyState:1,send:s=>sent.push(JSON.parse(s)),close(){this.readyState=3}};
-  const audio={listens:0,pauses:0,disposed:0,init:async()=>{},async listen(){this.listens++},async pause(){this.pauses++},dispose(){this.disposed++},play:(data,start)=>{start();return new Promise(resolve=>players.push({data,resolve}))},...overrides};
+  const audio={listens:0,pauses:0,cues:0,disposed:0,init:async()=>{},async playStartCue(){this.cues++},async listen(){this.listens++},async pause(){this.pauses++},dispose(){this.disposed++},play:(data,start)=>{start();return new Promise(resolve=>players.push({data,resolve}))},...overrides};
   const chat=new VoiceChat({createSocket:()=>socket,createAudio:()=>audio,onState:s=>states.push(s),onText:s=>texts.push(s),onReply:s=>replies.push(s)});
   const receive=m=>socket.onmessage({data:JSON.stringify(m)});
   const ready=async(options)=>{await chat.start(options);receive({type:'set-model-and-conf'});receive({type:'new-history-created'});await tick()};
@@ -14,7 +14,7 @@ function harness(overrides={}){
 }
 test('three automatic turns: ordered audio, one submission, completion before listening',async()=>{
   const h=harness();try{
-    await h.chat.start();assert.equal(h.audio.listens,0);h.receive({type:'control',text:'start-mic'});assert.equal(h.audio.listens,0);
+    await h.chat.start();assert.equal(h.audio.cues,1);assert.equal(h.audio.listens,0);h.receive({type:'control',text:'start-mic'});assert.equal(h.audio.listens,0);
     h.receive({type:'set-model-and-conf'});assert.deepEqual(h.sent,[{type:'create-new-history'}]);h.receive({type:'new-history-created'});await tick();
     for(let turn=0;turn<3;turn++){
       const samples=new Float32Array(16000).fill(.2);
@@ -61,8 +61,10 @@ test('S5 sends once per press pair and waits idle after three replies',async()=>
   const h=harness({finishRecording:async()=>new Float32Array(16000).fill(.2)});
   try{
     await h.ready({manual:true});
+    assert.equal(h.audio.cues,1);
     for(let turn=0;turn<3;turn++){
       if(turn)await h.chat.pressToTalk();
+      assert.equal(h.audio.cues,turn+1);
       assert.equal(h.chat.state,'listening');assert.equal(h.audio.listens,turn+1);
       await h.chat.pressToTalk();await h.chat.pressToTalk();
       assert.equal(h.sent.filter(m=>m.type==='mic-audio-end').length,turn+1);
@@ -72,6 +74,7 @@ test('S5 sends once per press pair and waits idle after three replies',async()=>
       assert.equal(h.chat.state,'ready');assert.equal(h.audio.listens,turn+1);
     }
     assert.equal(h.sent.filter(m=>m.type==='create-new-history').length,1);
+    assert.equal(h.audio.cues,3);
   }finally{h.chat.stop()}
 });
 test('S5 ignores double sends, drops cancelled capture and rejects very short recordings',async()=>{

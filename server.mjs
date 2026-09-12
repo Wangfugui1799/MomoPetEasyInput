@@ -1,11 +1,13 @@
 import http from 'node:http';import {readFile} from 'node:fs/promises';import {fileURLToPath} from 'node:url';import path from 'node:path';
 const root=fileURLToPath(new URL('./app/',import.meta.url));
-const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','bluetooth.mjs','protocol.mjs','sound.mjs','keyboard-sound.mjs','voice.mjs','voice-audio.mjs','manual-recording.mjs','keyboard-vad.mjs','keyboard-microphone.mjs','voice-input.mjs','wireless.mjs']);
+const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','bluetooth.mjs','protocol.mjs','sound.mjs','keyboard-sound.mjs','voice.mjs','voice-audio.mjs','manual-recording.mjs','keyboard-vad.mjs','keyboard-microphone.mjs','voice-input.mjs','wireless.mjs','ui-theme.mjs','moonlight.css',
+  ...['moonlight-room.png','momo-moonlight.png','momo-moonlight-sleep.png'].map(name=>'assets/'+name),
+  ...['cookie','hand-heart','target','compass','chat-circle','crown','music-notes','moon','house','sparkle','heart','gear','bluetooth','book-open','microphone','paper-plane-tilt','bowl-food','sun','lightning','user','caret-right'].map(name=>'assets/icons/'+name+'.svg')]);
 const voiceAssets=new Map([
   ...['bundle.min.js','vad.worklet.bundle.min.js','silero_vad_v5.onnx'].map(name=>['voice-assets/'+name,fileURLToPath(new URL('./node_modules/@ricky0123/vad-web/dist/'+name,import.meta.url))]),
   ...['ort.wasm.min.js','ort-wasm-simd-threaded.mjs','ort-wasm-simd-threaded.wasm'].map(name=>['voice-assets/'+name,fileURLToPath(new URL('./node_modules/onnxruntime-web/dist/'+name,import.meta.url))]),
 ]);
-const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.js':'text/javascript; charset=utf-8','.wasm':'application/wasm','.onnx':'application/octet-stream'};
+const mime={'.png':'image/png','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.js':'text/javascript; charset=utf-8','.wasm':'application/wasm','.onnx':'application/octet-stream'};
 export function validateChat(data){
   if(!data||typeof data.endpoint!=='string'||typeof data.key!=='string'||!data.key||data.key.length>2048||typeof data.model!=='string'||!data.model.trim()||data.model.length>100)throw Error('请检查 AI 接口、模型名称和密钥');
   const url=new URL(data.endpoint);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error('AI 接口需要使用 HTTPS 地址');

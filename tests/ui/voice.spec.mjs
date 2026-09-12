@@ -56,6 +56,12 @@ test('denied microphone displays recovery and leaves text chat usable',async({pa
 test('chat button layout fits a narrow screen',async({page})=>{
   await openChat(page);await page.setViewportSize({width:390,height:844});expect(await page.locator('#chat-dialog').evaluate(d=>d.scrollWidth<=d.clientWidth)).toBe(true);await page.screenshot({path:'docs/momo-voice-mobile.png'});
 });
+test('voice cue offers four previewable choices and persists the selection',async({page})=>{
+  await page.goto('/');await page.getByRole('button',{name:'设置',exact:true}).click();
+  await expect(page.locator('#voice-cue option')).toHaveCount(4);await page.locator('#voice-cue').selectOption('bubble');
+  await expect(page.locator('#voice-cue-status')).toContainText('气泡啫声');await page.reload();await page.getByRole('button',{name:'设置',exact:true}).click();
+  await expect(page.locator('#voice-cue')).toHaveValue('bubble');await page.locator('#voice-cue-preview').click();await expect(page.locator('#voice-cue-status')).toContainText('气泡啫声');
+});
 
 for(const method of ['close button','backdrop'])test(`${method} preserves queued playback and reply text`,async({page})=>{
   await mockVoice(page);await openChat(page);await page.locator('#voice-toggle').click();await expect(page.locator('#voice-status')).toContainText('正在听');
