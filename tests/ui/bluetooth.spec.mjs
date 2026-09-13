@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 test('Bluetooth controls Momo and disconnects cleanly',async({page})=>{
  await page.addInitScript(()=>{
+  window.focusRequests=0;window.momoDesktop={focusWindow:async()=>{window.focusRequests++}};
   const characteristic=new EventTarget();
   characteristic.startNotifications=async()=>characteristic;
   characteristic.readValue=async()=>new DataView(Uint8Array.of(1,0,0).buffer);
@@ -14,5 +15,7 @@ test('Bluetooth controls Momo and disconnects cleanly',async({page})=>{
  await page.evaluate(()=>window.bleInput(2,1));await expect(page.locator('#option-name')).toHaveText('甜甜草莓');
  await page.evaluate(()=>window.bleInput(3,0));await expect(page.locator('#hunger-value')).toHaveText('75');
  await page.locator('#settings-open').click();await expect(page.locator('#input-sound-status')).toContainText('USB');
- await page.locator('#settings-dialog .close-dialog').click();await page.locator('#connection').click();await expect(page.locator('#connection')).toContainText('连接 EasyInput');await expect(page.locator('#battery-level')).toBeHidden();
+ expect(await page.evaluate(()=>window.focusRequests)).toBe(0);
+ await page.evaluate(()=>window.bleInput(4,0));await expect(page.locator('#settings-dialog')).not.toBeVisible();expect(await page.evaluate(()=>window.focusRequests)).toBe(1);
+ await page.locator('#connection').click();await expect(page.locator('#connection')).toContainText('连接 EasyInput');await expect(page.locator('#battery-level')).toBeHidden();
 });

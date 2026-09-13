@@ -5,7 +5,15 @@ const {sameOrigin,allowSerial}=require('./serial-policy.cjs');
 const {allowMicrophone}=require('./media-policy.cjs');
 app.setName('Momo');
 if(!app.requestSingleInstanceLock()){app.quit();process.exit(0)}
-app.on('second-instance',()=>{if(win){if(win.isMinimized())win.restore();win.focus()}});
+function focusMomoWindow(){
+  if(!win||win.isDestroyed())return false;
+  if(win.isMinimized())win.restore();
+  win.show();
+  app.focus({steal:true});
+  win.focus();
+  return true;
+}
+app.on('second-instance',focusMomoWindow);
 async function createWindow(){
   if(!wireless){
     wireless=new WirelessManager({directory:app.getPath('userData'),safeStorage,send:(kind,value)=>{if(win&&!win.isDestroyed())win.webContents.send('momo:wireless-event',kind,value)}});
@@ -50,6 +58,10 @@ app.whenReady().then(async()=>{
   const port=Number.isInteger(override)&&override>=1024&&override<=65535?override:4784;
   try{server=await startServer({port})}catch{dialog.showErrorBox('Momo 暂时无法启动',`本机端口 ${port} 已被占用。请关闭其他 Momo 实例后重试。`);app.quit();return}
   ipcMain.handle('momo:always-top',(e,value)=>{if(e.sender!==win.webContents||typeof value!=='boolean')throw Error('Invalid request');win.setAlwaysOnTop(value);return value});
+  ipcMain.handle('momo:focus',event=>{
+    if(!win||win.isDestroyed()||event.sender!==win.webContents||event.senderFrame!==win.webContents.mainFrame||!sameOrigin(event.senderFrame.url,server.url))throw Error('Invalid focus origin');
+    return focusMomoWindow();
+  });
   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'Momo',submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'quit'}]},{label:'编辑',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]},{label:'窗口',submenu:[{role:'minimize'},{role:'zoom'}]}]));
   await createWindow();app.on('activate',()=>{if(!BrowserWindow.getAllWindows().length)createWindow()});
 });
