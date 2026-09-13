@@ -1,8 +1,8 @@
 // Open-LLM-VTuber 1.2.1: frontend VAD, mono Float32 at 16 kHz.
 export const VOICE_URL='ws://127.0.0.1:12393/client-ws';
 export class VoiceChat {
-  constructor({createSocket=url=>new WebSocket(url),createAudio, onState=()=>{},onText=()=>{},onReply=()=>{}}={}) {
-    Object.assign(this,{createSocket,createAudio,onState,onText,onReply});
+  constructor({createSocket=url=>new WebSocket(url),createAudio,getProfile=()=>null, onState=()=>{},onText=()=>{},onReply=()=>{}}={}) {
+    Object.assign(this,{createSocket,createAudio,getProfile,onState,onText,onReply});
     this.session=null;this.state='off';
   }
   get active(){return !!this.session}
@@ -26,8 +26,13 @@ export class VoiceChat {
     }catch(e){this.stop(e.name==='AudioInputError'?e.message:'无法启动语音，请检查麦克风与语音服务。')}
   }
   receive(s,m){
-    if(m.type==='set-model-and-conf'&&!s.initializing){s.initializing=true;this.send(s,{type:'create-new-history'});return}
-    if(m.type==='new-history-created'&&s.initializing&&!s.preparing){s.preparing=true;void this.prepare(s);return}
+    if(m.type==='set-model-and-conf'&&!s.initializing){
+      s.initializing=true;const profile=this.getProfile();
+      if(profile){if(!m.momo_profile_supported){this.stop('当前语音服务不支持音色与人设切换，请重启更新后的语音服务，或在设置中恢复服务默认。');return}s.profilePending=true;this.send(s,{type:'momo-set-profile',...profile})}
+      else this.send(s,{type:'create-new-history'});return;
+    }
+    if(m.type==='momo-profile-applied'&&s.profilePending){s.profilePending=false;this.send(s,{type:'create-new-history'});return}
+    if(m.type==='new-history-created'&&s.initializing&&!s.profilePending&&!s.preparing){s.preparing=true;void this.prepare(s);return}
     if(m.type==='error'){this.stop('语音服务处理失败，请检查 VTuber 的模型与网络后重试。');return}
     // In particular, ignore backend start-mic: only the user's button opens capture.
     if(!s.turn)return;

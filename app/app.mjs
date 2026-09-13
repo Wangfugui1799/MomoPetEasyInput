@@ -65,6 +65,12 @@ $('#diary-open').onclick=()=>{renderDiary();openDialog('#diary-dialog')};$('#set
 $('#chat-open').onclick=()=>{select(4);openChat()};
 document.querySelectorAll('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}}));
 let voiceReply=null;
+const profileSection=document.createElement('section');profileSection.className='voice-input-settings';profileSection.setAttribute('aria-label','语音宠物');profileSection.innerHTML='<h3>语音宠物</h3><label for="pet-voice">回复音色</label><select id="pet-voice"><option value="default">服务默认音色</option><option value="zh-TW-HsiaoChenNeural">晓臻 · 台湾女声</option><option value="zh-CN-XiaoxiaoNeural">晓晓 · 普通话女声</option><option value="zh-CN-XiaoyiNeural">晓伊 · 普通话女声</option><option value="zh-CN-YunxiNeural">云希 · 普通话男声</option></select><label for="pet-persona">陪伴人设</label><select id="pet-persona"><option value="default">服务默认人设</option><option value="gentle">温柔陪伴</option><option value="playful">元气搭子</option><option value="calm">冷静助手</option></select><p id="pet-profile-status" role="status">自动保存，下次打开麦克风生效。切换会结束当前语音会话；仅影响语音服务中的对话。</p>';
+document.querySelector('section[aria-label="语音输入设置"]').before(profileSection);
+const petProfile={voice:'default',persona:'default'};
+try{const saved=JSON.parse(localStorage.getItem('momo.voice.profile.v1'));for(const key of ['voice','persona'])if([...$('#pet-'+key).options].some(o=>o.value===saved?.[key]))petProfile[key]=saved[key]}catch{}
+for(const key of ['voice','persona']){const select=$('#pet-'+key);select.value=petProfile[key];select.onchange=()=>{petProfile[key]=select.value;voice.stop();let saved=true;try{localStorage.setItem('momo.voice.profile.v1',JSON.stringify(petProfile))}catch{saved=false}$('#pet-profile-status').textContent=(saved?'已保存':'本地存储不可用，仅本次打开有效')+' · 下次打开麦克风使用新音色与人设。';toast('语音宠物已切换，下次打开麦克风生效')}}
+
 const cueSection=document.createElement('section');cueSection.className='voice-input-settings';cueSection.setAttribute('aria-label','语音开始提示音');cueSection.innerHTML='<h3>语音提示音</h3><label for="voice-cue">开始录音时播放</label><select id="voice-cue"></select><button type="button" class="secondary-button" id="voice-cue-preview">试听提示音</button><p id="voice-cue-status" role="status">选择后会自动保存并试听，S5 与界面麦克风共用。</p>';document.querySelector('section[aria-label="键盘操作音效"]').before(cueSection);
 const voiceCueSelect=$('#voice-cue');voiceCueSelect.replaceChildren(...VOICE_CUE_OPTIONS.map(([id,label])=>new Option(label,id)));
 let savedVoiceCue;try{savedVoiceCue=localStorage.getItem('momo.voice.cue.v1')}catch{}const voiceCue={value:normalizeVoiceCue(savedVoiceCue)};voiceCueSelect.value=voiceCue.value;
@@ -73,7 +79,7 @@ async function previewVoiceCue(){const button=$('#voice-cue-preview');button.dis
 voiceCueSelect.onchange=()=>{voiceCue.value=normalizeVoiceCue(voiceCueSelect.value);try{localStorage.setItem('momo.voice.cue.v1',voiceCue.value)}catch{}void previewVoiceCue()};$('#voice-cue-preview').onclick=previewVoiceCue;
 const voiceInput=new VoiceInputSettings({select:$('#voice-input'),refresh:$('#voice-input-refresh'),status:$('#voice-input-status'),onChange:()=>{if(voice.active)voice.stop();toast('语音输入已切换，重新打开麦克风即可使用')}});
 const wirelessKeyboard=new WirelessConnection();
-const voice=new VoiceChat({createAudio:options=>{
+const voice=new VoiceChat({getProfile:()=>petProfile.voice==='default'&&petProfile.persona==='default'?null:{...petProfile},createAudio:options=>{
   if(voiceInput.value==='easyinput'&&(!usbKeyboard.verified||!usbKeyboard.micSupported)){const e=Error(usbKeyboard.verified?'当前固件不支持键盘麦克风，请升级至 0.5.0 或更新固件，并使用原生 USB 连接。':'请先通过原生 USB 连接 EasyInput，再开启键盘麦克风。');e.name='AudioInputError';throw e}
   if(voiceInput.value==='easyinput-wifi'&&!wirelessKeyboard.verified){const e=Error('请在设置中开启无线接收，并等待 EasyInput Wi-Fi 连接成功。');e.name='AudioInputError';throw e}
   return createBrowserAudio({...options,input:voiceInput.value,connection:voiceInput.value==='easyinput-wifi'?wirelessKeyboard:usbKeyboard,cueStyle:()=>voiceCue.value});

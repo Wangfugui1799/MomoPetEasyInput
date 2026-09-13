@@ -84,3 +84,8 @@ test('S5 ignores double sends, drops cancelled capture and rejects very short re
   const short=harness({finishRecording:async()=>new Float32Array(100)});
   try{await short.ready({manual:true});await short.chat.pressToTalk();assert.equal(short.chat.state,'ready');assert.equal(short.sent.some(m=>m.type==='mic-audio-end'),false);await short.chat.pressToTalk();assert.equal(short.audio.listens,2)}finally{short.chat.stop()}
 });
+test('profile is acknowledged before history and microphone; unsupported server stops safely',async()=>{
+  const h=harness();h.chat.getProfile=()=>({voice:'zh-CN-YunxiNeural',persona:'calm'});
+  try{await h.chat.start();h.receive({type:'set-model-and-conf',momo_profile_supported:true});assert.deepEqual(h.sent,[{type:'momo-set-profile',voice:'zh-CN-YunxiNeural',persona:'calm'}]);h.receive({type:'new-history-created'});assert.equal(h.audio.listens,0);h.receive({type:'momo-profile-applied'});assert.equal(h.sent.at(-1).type,'create-new-history');h.receive({type:'new-history-created'});await tick();assert.equal(h.audio.listens,1)}finally{h.chat.stop()}
+  const old=harness();old.chat.getProfile=()=>({voice:'default',persona:'gentle'});await old.chat.start();old.receive({type:'set-model-and-conf'});assert.equal(old.chat.active,false);assert.equal(old.audio.listens,0);assert.equal(old.sent.some(m=>m.type==='create-new-history'),false);
+});

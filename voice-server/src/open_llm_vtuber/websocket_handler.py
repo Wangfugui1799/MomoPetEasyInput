@@ -89,6 +89,7 @@ class WebSocketHandler:
             "raw-audio-data": self._handle_raw_audio_data,
             "text-input": self._handle_conversation_trigger,
             "ai-speak-signal": self._handle_conversation_trigger,
+            "momo-set-profile": self._handle_momo_profile,
             "fetch-configs": self._handle_fetch_configs,
             "switch-config": self._handle_config_switch,
             "fetch-backgrounds": self._handle_fetch_backgrounds,
@@ -165,6 +166,7 @@ class WebSocketHandler:
                     "conf_name": session_service_context.character_config.conf_name,
                     "conf_uid": session_service_context.character_config.conf_uid,
                     "client_uid": client_uid,
+                    "momo_profile_supported": True,
                 }
             )
         )
@@ -527,6 +529,21 @@ class WebSocketHandler:
             current_conversation_tasks=self.current_conversation_tasks,
             broadcast_to_group=self.broadcast_to_group,
         )
+
+    async def _handle_momo_profile(self, websocket, client_uid, data):
+        from .momo_profile import apply_profile
+
+        context = self.client_contexts[client_uid]
+        # Profiles are applied before history/capture starts, never during a turn.
+        if context.history_uid or self.current_conversation_tasks.get(client_uid):
+            await websocket.send_text(json.dumps({"type": "error"}))
+            return
+        try:
+            await apply_profile(context, data)
+            await websocket.send_text(json.dumps({"type": "momo-profile-applied"}))
+        except Exception:
+            logger.warning("Momo profile could not be applied")
+            await websocket.send_text(json.dumps({"type": "error"}))
 
     async def _handle_fetch_configs(
         self, websocket: WebSocket, client_uid: str, data: WSMessage
