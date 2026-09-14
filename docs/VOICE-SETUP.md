@@ -1,8 +1,28 @@
 # Momo 语音聊天：从下载到使用
 
-本教程对应 Momo 0.5.0。仓库现在同时包含桌面应用、EasyInput 固件和 `voice-server/` 配套服务端源码。下载 ZIP 或 `git clone` 一次即可，不需要另外克隆 Open-LLM-VTuber，也不需要初始化 Live2D 前端子模块。
+本教程对应 Momo 0.6.3。仓库现在同时包含桌面应用、EasyInput 固件和 `voice-server/` 配套服务端源码。下载 ZIP 或 `git clone` 一次即可，不需要另外克隆 Open-LLM-VTuber，也不需要初始化 Live2D 前端子模块。
 
 **需要使用者自己的 AI 服务密钥。** 源码不包含作者的密钥、聊天记录或已下载模型。第一次使用仍要安装依赖、填写配置并下载语音识别模型；不是无需配置的托管语音服务。
+
+## macOS 快速安装（配合下载的 Momo.app）
+
+1. 下载 [Momo-v0.6.3-voice-setup.zip](https://github.com/Wangfugui1799/MomoPetEasyInput/releases/download/v0.6.3/Momo-v0.6.3-voice-setup.zip) 并完整解压，保留整个目录；也可使用最新仓库源码。v0.6.3 自动生成的 Source code 包不包含后来添加的安装脚本。
+2. 双击根目录的 **安装语音服务.command**。脚本使用已有 Homebrew 安装缺少的 uv、FFmpeg，安装指定 Python 和锁定依赖；没有 Homebrew 且缺少工具时会给出安装入口，可安装后重试。
+3. 按终端提示输入自己的 API 密钥（输入时不显示），以及可选的 AI 基础地址和模型名称。默认使用 DeepSeek；直接回车可保留模板或已有的地址和模型。已有有效格式的密钥、人设配置会原样保留。
+4. 等待约 230 MB 的语音识别模型下载、校验和本机配置检查完成。
+5. 双击 **启动语音服务.command**，看到 `MOMO_VOICE_READY` 后打开 Momo.app，按 S5 开始聊天。保持服务终端打开，按 `Ctrl+C` 停止。
+
+这条路线不需要 Node.js，也不安装 Electron。首次安装建议预留至少 2 GB 空间；需要联网。安装脚本可以重复运行，已校验的模型会复用。若暂不填写密钥，脚本会提示配置未完成，填写 `.env` 后重新运行即可；不会误报安装成功。
+
+如果 Finder 无法执行脚本，在终端输入 `bash `（含末尾空格），将 `scripts/install-voice.sh` 拖入终端后按回车。终端也可直接运行：
+
+```sh
+bash scripts/install-voice.sh
+# 不询问密钥，适合已有 .env 的安装；配置缺失时退出码为 2
+bash scripts/install-voice.sh --non-interactive
+```
+
+脚本不会验证在线 AI 密钥或余额，不会注册开机启动，也不会修改已有服务配置。开发模式及其他系统继续参考下面的手动流程。
 
 ## 1. 先了解各部分做什么
 

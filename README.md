@@ -76,6 +76,8 @@ npx electron-packager . Momo --platform=darwin --arch=x64 --out=dist --overwrite
 
 ## 麦克风语音聊天
 
+**使用下载的 Mac 应用：** 下载 [语音安装配套源码包](https://github.com/Wangfugui1799/MomoPetEasyInput/releases/download/v0.6.3/Momo-v0.6.3-voice-setup.zip) 并完整解压，双击根目录的 `安装语音服务.command`，按提示安装依赖、填写 AI 密钥并下载模型。以后双击 `启动语音服务.command`，等待 `MOMO_VOICE_READY` 后打开 Momo.app。这条路线无需 Node.js；详细前提及说明见 [语音安装教程](docs/VOICE-SETUP.md#macos-快速安装配合下载的-momoapp)。请下载上述专用附件；v0.6.3 自动生成的 Source code 包仍对应最初发布的代码。
+
 配套服务端源码已包含在本仓库的 `voice-server/`。首次安装请按 **[详细使用教程](docs/VOICE-SETUP.md)** 安装 uv、FFmpeg，然后运行：
 
 ```sh
