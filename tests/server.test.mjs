@@ -5,6 +5,11 @@ test('provider failure produces useful errors without leaking credentials',async
 
 test('sound settings module is served with JavaScript MIME',async()=>{const s=await startServer({port:0});try{const r=await fetch(s.url+'/keyboard-sound.mjs');assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/javascript/);assert.match(await r.text(),/KeyboardSoundPanel/)}finally{await s.close()}});
 
+test('sleep ambience module is served with JavaScript MIME',async()=>{const s=await startServer({port:0});try{const r=await fetch(s.url+'/sleep-sound.mjs');assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/javascript/);assert.match(await r.text(),/SleepAmbience/)}finally{await s.close()}});
+
+// 静态白名单是手写的：新增一个 app/ 下的模块却忘了登记，界面会静默 404。这里守住它。
+test('every app module and stylesheet is reachable through the whitelist',async()=>{const {readdir}=await import('node:fs/promises');const s=await startServer({port:0});try{const names=(await readdir(new URL('../app/',import.meta.url))).filter(name=>/\.(mjs|css|html|svg)$/.test(name));assert.ok(names.length>=20);for(const name of names)assert.equal((await fetch(s.url+'/'+name)).status,200,name)}finally{await s.close()}});
+
 test('voice assets are local, explicitly allowed, and carry correct MIME and CSP',async()=>{
   const s=await startServer({port:0});try{
     for(const [name,mime] of [['voice.mjs','javascript'],['voice-audio.mjs','javascript'],['voice-assets/bundle.min.js','javascript'],['voice-assets/ort-wasm-simd-threaded.mjs','javascript'],['voice-assets/ort-wasm-simd-threaded.wasm','application/wasm'],['voice-assets/silero_vad_v5.onnx','application/octet-stream']]){

@@ -84,3 +84,23 @@ test('background voice status fits mobile and reports a disconnect',async({page}
   await page.evaluate(()=>window.voiceSocket.onclose());await expect(page.locator('#voice-panel-status')).toContainText('已断开');await expect(page.locator('#voice-stop')).toHaveText('关闭提示');expect(await page.evaluate(()=>window.voiceTracks.every(t=>t.stopped))).toBe(true);
   await page.locator('#voice-stop').click();await expect(page.locator('#voice-panel')).toBeHidden();
 });
+test('a sleeping pet refuses the microphone and keeps the ambience playing',async({page})=>{
+  await mockVoice(page);await page.goto('/');
+  await page.getByRole('button',{name:'8 睡觉',exact:true}).click();await page.locator('#confirm').click();
+  await expect(page.locator('.pet-room')).toHaveAttribute('data-sleep-sound','lullaby');
+  await page.locator('#chat-open').click();await page.getByRole('button',{name:'打开麦克风',exact:true}).click();
+  await expect(page.locator('#speech')).toHaveText('先叫醒我，再一起玩吧。');
+  await expect(page.locator('#voice-toggle')).toHaveAttribute('aria-pressed','false');
+  await expect(page.locator('#voice-status')).not.toContainText('正在听');
+  expect(await page.evaluate(()=>window.voiceTracks.length)).toBe(0);
+  await expect(page.locator('.pet-room')).toHaveAttribute('data-sleep-sound','lullaby');
+});
+test('putting a talking pet to sleep ends the session and hands over to the ambience',async({page})=>{
+  await mockVoice(page);await openChat(page);
+  await page.getByRole('button',{name:'打开麦克风',exact:true}).click();await expect(page.locator('#voice-status')).toContainText('正在听');
+  await page.keyboard.press('Escape');await expect(page.locator('#chat-dialog')).not.toBeVisible();
+  await page.getByRole('button',{name:'8 睡觉',exact:true}).click();await page.locator('#confirm').click();
+  await expect(page.locator('.pet-room')).toHaveAttribute('data-sleep-sound','lullaby');
+  await expect(page.locator('#voice-toggle')).toHaveAttribute('aria-pressed','false');
+  expect(await page.evaluate(()=>window.voiceTracks.every(t=>t.stopped))).toBe(true);
+});

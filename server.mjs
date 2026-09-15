@@ -1,6 +1,6 @@
 import http from 'node:http';import {readFile} from 'node:fs/promises';import {fileURLToPath} from 'node:url';import path from 'node:path';
 const root=fileURLToPath(new URL('./app/',import.meta.url));
-const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','bluetooth.mjs','protocol.mjs','sound.mjs','keyboard-sound.mjs','voice.mjs','voice-audio.mjs','manual-recording.mjs','keyboard-vad.mjs','keyboard-microphone.mjs','voice-input.mjs','wireless.mjs','ui-theme.mjs','moonlight.css',
+const allowed=new Set(['index.html','style.css','favicon.svg','app.mjs','core.mjs','serial.mjs','bluetooth.mjs','protocol.mjs','sound.mjs','sleep-sound.mjs','keyboard-sound.mjs','voice.mjs','voice-audio.mjs','manual-recording.mjs','keyboard-vad.mjs','keyboard-microphone.mjs','voice-input.mjs','wireless.mjs','ui-theme.mjs','moonlight.css',
   ...['moonlight-room.png','momo-moonlight.png','momo-moonlight-sleep.png'].map(name=>'assets/'+name),
   ...['cookie','hand-heart','target','compass','chat-circle','crown','music-notes','moon','house','sparkle','heart','gear','bluetooth','book-open','microphone','paper-plane-tilt','bowl-food','sun','lightning','user','caret-right'].map(name=>'assets/icons/'+name+'.svg')]);
 const voiceAssets=new Map([

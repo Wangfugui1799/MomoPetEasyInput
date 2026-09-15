@@ -7,11 +7,27 @@ import {KeyboardSoundPanel} from './keyboard-sound.mjs';
 import {MODES,initialState,restoreState,ageState,act,localReply,addDiary} from './core.mjs';
 import {BluetoothConnection} from './bluetooth.mjs';
 import {KeyboardConnection} from './serial.mjs';import {Soundscape} from './sound.mjs';
+import {SleepAmbience,SLEEP_SOUND_OPTIONS,normalizeSleepSound,clampVolume} from './sleep-sound.mjs';
 const $=s=>document.querySelector(s),storageKey='momo.pet.v1';
 let state=initialState(),mode=5,choice=0,reverse=false,ai=null,history=[],chatBusy=false,game=null,toastTimer,animationTimer;
 try{state=restoreState(JSON.parse(localStorage.getItem(storageKey)))}catch{}
 choice=state.outfit;
 const music=new Soundscape();
+// 睡眠助眠音与音乐互相独立：睡着时音乐必须停，助眠音才起。
+const sleepSound=new SleepAmbience(),sleepPref={style:'lullaby',volume:30};
+try{const saved=JSON.parse(localStorage.getItem('momo.sleep.sound.v1'));sleepPref.style=normalizeSleepSound(saved?.style);sleepPref.volume=clampVolume(Number(saved?.volume))}catch{}
+sleepSound.style=sleepPref.style;sleepSound.volume=sleepPref.volume;
+function saveSleepPref(){try{localStorage.setItem('momo.sleep.sound.v1',JSON.stringify(sleepPref))}catch{}}
+// data-sleep-sound 只作为可观察状态：off / lullaby / snore。
+function syncSleepSound(){const room=$('.pet-room');if(room)room.dataset.sleepSound=sleepSound.playing?sleepSound.style:'off'}
+function stopSleepSound(){sleepSound.stop();syncSleepSound()}
+async function playSleepSound(quiet=false){
+  if(sleepPref.style==='off'||sleepSound.playing)return false;
+  try{await sleepSound.start(sleepPref.style)}catch(error){if(!quiet)toast(error.message)}
+  // 播放是异步的，期间主人可能已经把它叫醒了：这里补一次检查，避免"醒来后还在响"。
+  if(!state.sleeping){stopSleepSound();return false}
+  syncSleepSound();return sleepSound.playing;
+}
 function toast(text){$('#toast').textContent=text;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4500)}
 function save(){try{localStorage.setItem(storageKey,JSON.stringify(state))}catch{$('#save-label').textContent='本地存储不可用，关闭前请导出日记'}}
 function speak(text){$('#speech').textContent=text}
@@ -39,7 +55,9 @@ async function confirm(){
   const m=MODES[mode];if(m.id==='chat'){openChat();return}if(state.sleeping&&m.id!=='sleep'){speak('先叫醒我，再一起玩吧。');return}
   if(m.id==='train'&&state.energy>=8){if(!game){startTraining();return}const win=Math.abs(game.position-50)<=[15,10,6][game.difficulty];cancelGame();feedback(act(state,m.id,choice,{win}));return}
   if(m.id==='music'){try{const playing=await music.play(choice);speak(playing?`正在播放「${m.options[choice]}」。就这样，慢慢待一会儿。`:'音乐轻轻停下了。');render()}catch(e){toast(e.message)}return}
-  feedback(act(state,m.id,choice));if(state.sleeping){music.stop();render()}
+  feedback(act(state,m.id,choice));
+  // 睡觉与助眠音同步：睡着起、醒来停；睡着时音乐和语音都要让位，避免两层声音叠在一起。
+  if(m.id==='sleep'){if(state.sleeping){music.stop();if(voice.active)voice.stop();render();void playSleepSound()}else{stopSleepSound();render()}}
 }
 function openDialog(id){if(!$(id).open)$(id).showModal()}
 function addMessage(role,text,error=false){const e=document.createElement('div');e.className=`message ${role}${error?' error':''}`;e.textContent=text;$('#messages').append(e);$('#messages').scrollTop=$('#messages').scrollHeight;return e}
@@ -77,6 +95,23 @@ let savedVoiceCue;try{savedVoiceCue=localStorage.getItem('momo.voice.cue.v1')}ca
 let cuePreviewContext,cuePreview;
 async function previewVoiceCue(){const button=$('#voice-cue-preview');button.disabled=true;$('#voice-cue-status').textContent='正在试听…';try{cuePreviewContext??=new AudioContext();await cuePreviewContext.resume();cuePreview?.stop();cuePreview=createVoiceCue(cuePreviewContext,voiceCue.value);await cuePreview.done;$('#voice-cue-status').textContent=`已选择「${voiceCueSelect.selectedOptions[0].textContent}」，按 S5 开始录音时使用。`}catch{$('#voice-cue-status').textContent='无法播放试听，请检查电脑输出音量。'}finally{button.disabled=false}}
 voiceCueSelect.onchange=()=>{voiceCue.value=normalizeVoiceCue(voiceCueSelect.value);try{localStorage.setItem('momo.voice.cue.v1',voiceCue.value)}catch{}void previewVoiceCue()};$('#voice-cue-preview').onclick=previewVoiceCue;
+const sleepSection=document.createElement('section');sleepSection.className='voice-input-settings';sleepSection.setAttribute('aria-label','睡眠助眠声音');sleepSection.innerHTML='<h3>睡眠助眠声音</h3><label for="sleep-sound-style">Momo 睡着时播放</label><select id="sleep-sound-style"></select><div class="setting-row"><div><b>助眠音量 <output id="sleep-sound-value" for="sleep-sound-volume">30%</output></b><p>与「音乐音量」互相独立，只在睡着时生效。</p></div><input type="range" id="sleep-sound-volume" min="0" max="100" value="30" aria-label="睡眠助眠音量"></div><div class="form-actions"><button type="button" class="secondary-button" id="sleep-sound-preview">试听助眠声音</button></div><p id="sleep-sound-status" role="status">进入「睡觉」时自动播放，醒来或开口说话时停止。</p>';document.querySelector('section[aria-label="键盘操作音效"]').before(sleepSection);
+const sleepStyleSelect=$('#sleep-sound-style'),sleepVolumeInput=$('#sleep-sound-volume'),sleepVolumeLabel=$('#sleep-sound-value'),sleepStatus=$('#sleep-sound-status');
+sleepStyleSelect.replaceChildren(...SLEEP_SOUND_OPTIONS.map(([id,label])=>new Option(label,id)));
+sleepStyleSelect.value=sleepPref.style;sleepVolumeInput.value=sleepPref.volume;sleepVolumeLabel.textContent=`${sleepPref.volume}%`;
+sleepStyleSelect.onchange=()=>{
+  sleepPref.style=normalizeSleepSound(sleepStyleSelect.value);saveSleepPref();const label=sleepStyleSelect.selectedOptions[0].textContent;
+  void sleepSound.setStyle(sleepPref.style).then(syncSleepSound,error=>{syncSleepSound();toast(error.message)});
+  if(sleepPref.style==='off'){sleepStatus.textContent='已关闭，Momo 睡着时不会播放任何声音。';return}
+  sleepStatus.textContent=state.sleeping?`正在播放「${label}」。`:`已选择「${label}」，Momo 睡着时自动播放。`;
+};
+sleepVolumeInput.oninput=()=>{sleepPref.volume=clampVolume(Number(sleepVolumeInput.value));sleepVolumeLabel.textContent=`${sleepPref.volume}%`;sleepSound.setVolume(sleepPref.volume)};
+sleepVolumeInput.onchange=saveSleepPref;
+$('#sleep-sound-preview').onclick=async()=>{
+  if(sleepSound.playing){stopSleepSound();sleepStatus.textContent='试听已停止。';return}
+  if(sleepPref.style==='off'){sleepStatus.textContent='请先选择一种助眠声音，再试听。';return}
+  try{await sleepSound.start(sleepPref.style);syncSleepSound();sleepStatus.textContent='正在试听，再按一次停止。'}catch(error){sleepStatus.textContent=error.message}
+};
 const voiceInput=new VoiceInputSettings({select:$('#voice-input'),refresh:$('#voice-input-refresh'),status:$('#voice-input-status'),onChange:()=>{if(voice.active)voice.stop();toast('语音输入已切换，重新打开麦克风即可使用')}});
 const wirelessKeyboard=new WirelessConnection();
 const voice=new VoiceChat({getProfile:()=>petProfile.voice==='default'&&petProfile.persona==='default'?null:{...petProfile},createAudio:options=>{
@@ -95,7 +130,7 @@ const voice=new VoiceChat({getProfile:()=>petProfile.voice==='default'&&petProfi
   onText:text=>{voiceReply=null;addMessage('user',text)},
   onReply:text=>{if(!voiceReply)voiceReply=addMessage('assistant','');voiceReply.textContent=text;$('#messages').scrollTop=$('#messages').scrollHeight;speak(text)},
 });
-function startVoice(){if(voice.active)return;if(chatBusy){toast('请等当前文字回复结束，再打开麦克风');return}music.stop();render();voiceReply=null;void voice.start()}
+function startVoice(){if(voice.active)return;if(state.sleeping){speak('先叫醒我，再一起玩吧。');return}if(chatBusy){toast('请等当前文字回复结束，再打开麦克风');return}music.stop();render();voiceReply=null;void voice.start()}
 async function pressS5(){
   if(state.sleeping){speak('先叫醒我，再一起玩吧。');return}
   if(chatBusy){toast('请等当前文字回复结束，再按 S5 录音');return}
@@ -120,9 +155,14 @@ $('#volume').oninput=e=>music.volume=Number(e.target.value)/100;$('#reverse-knob
 $('#always-top').disabled=!window.momoDesktop;$('#always-top').onchange=async e=>{try{await window.momoDesktop.setAlwaysOnTop(e.target.checked)}catch{e.target.checked=false;toast('暂时无法设置窗口置顶')}};
 $('#ai-form').onsubmit=e=>{e.preventDefault();try{const endpoint=new URL($('#ai-endpoint').value.trim());if(endpoint.protocol!=='https:'||endpoint.username||endpoint.password||endpoint.search||endpoint.hash)throw Error('请填写不含账号、查询参数的 HTTPS 完整接口地址');const model=$('#ai-model').value.trim(),key=$('#ai-key').value.trim();if(!model||!key)throw Error('请填写模型名称和 API 密钥');ai={endpoint:endpoint.href,model,key};$('#chat-badge').textContent='AI 对话 · '+model;$('#ai-status').textContent='已启用。下一条消息将发往此服务；关闭应用后密钥自动清除。';$('#ai-key').value='';toast('AI 配置已启用，发送消息后会验证连接')}catch(err){$('#ai-status').textContent=err.message}};
 $('#ai-clear').onclick=()=>{ai=null;$('#ai-key').value='';$('#ai-status').textContent='已恢复本地预设回复。';$('#chat-badge').textContent='本地陪伴 · 预设回复'};
-$('#clear-data').onclick=()=>{if(!window.confirm('确定清除 Momo 的全部养成状态和陪伴日记吗？此操作无法恢复。'))return;state=initialState();history=[];voiceReply=null;$('#messages').replaceChildren();cancelGame();music.stop();choice=0;save();render();speak('你好呀。我们的故事，从这里重新开始。');$('#settings-dialog').close();toast('已清除本地宠物与日记数据')};
+$('#clear-data').onclick=()=>{if(!window.confirm('确定清除 Momo 的全部养成状态和陪伴日记吗？此操作无法恢复。'))return;state=initialState();history=[];voiceReply=null;$('#messages').replaceChildren();cancelGame();music.stop();stopSleepSound();choice=0;save();render();speak('你好呀。我们的故事，从这里重新开始。');$('#settings-dialog').close();toast('已清除本地宠物与日记数据')};
 setInterval(()=>{state=ageState(state);save();render()},60000);window.addEventListener('beforeunload',save);
 $('#date-label').textContent=`${new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'})} · A LITTLE COMPANY, EVERY DAY`;
 save();render();
+// 上次关掉应用时宠物还在睡：浏览器不允许无手势自动播放，先试一次，失败就等主人第一次碰页面再补。
+if(state.sleeping&&sleepPref.style!=='off'){
+  const resume=()=>{void playSleepSound(true).then(playing=>{if(playing){document.removeEventListener('pointerdown',resume);document.removeEventListener('keydown',resume)}})};
+  void resume();document.addEventListener('pointerdown',resume);document.addEventListener('keydown',resume);
+}
 
 uiTheme=initUITheme({onChatVisible:ensureChatGreeting,notify:toast});

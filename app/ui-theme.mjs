@@ -95,7 +95,7 @@ export function initUITheme({onChatVisible, notify = () => {}}) {
   const row = id => $(id).closest('.setting-row');
   addGroup('appearance', '外观', [row('#always-top')]);
   addGroup('devices', '设备连接', [$('.wireless-settings'), row('#reverse-knob')]);
-  addGroup('audio', '声音与麦克风', [$('#pet-voice').closest('section'), row('#volume'), $('#voice-input').closest('section'), $('#voice-cue').closest('section'), $('#input-sound-enabled').closest('section')]);
+  addGroup('audio', '声音与麦克风', [$('#pet-voice').closest('section'), row('#volume'), $('#sleep-sound-style').closest('section'), $('#voice-input').closest('section'), $('#voice-cue').closest('section'), $('#input-sound-enabled').closest('section')]);
   addGroup('ai', 'AI 对话', [$('#ai-form').previousElementSibling.previousElementSibling, $('#ai-form').previousElementSibling, $('#ai-form')]);
   addGroup('data', '数据管理', [$('#clear-data'), $('#clear-data').nextElementSibling]);
   settings.append(groups);
